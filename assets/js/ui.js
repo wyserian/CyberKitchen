@@ -25,11 +25,41 @@ CK.ui = (function () {
     return h;
   }
 
+  var RUN_KEY = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘+Enter' : 'Ctrl+Enter';
+
+  /* Snapshot every field in a tool; the returned function puts them back.
+     Selects and switches are restored first, then text, and each fires the
+     event a user edit would, so the tool re-syncs its own state. */
+  function snapshot(scope) {
+    var els = [].slice.call(scope.querySelectorAll('select, input, textarea')).filter(function (e) { return e.type !== 'file'; });
+    var vals = els.map(function (e) { return e.type === 'checkbox' ? e.checked : e.value; });
+    var order = els.map(function (e, i) { return i; }).sort(function (a, b) { return rank(els[a]) - rank(els[b]); });
+    function rank(e) { return e.tagName === 'SELECT' ? 0 : e.type === 'checkbox' ? 1 : 2; }
+    return function restore() {
+      order.forEach(function (i) {
+        var e = els[i];
+        if (e.type === 'checkbox') { if (e.checked !== vals[i]) { e.checked = vals[i]; e.dispatchEvent(new Event('change')); } }
+        else if (e.value !== vals[i]) { e.value = vals[i]; e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input')); }
+      });
+    };
+  }
+  // Reset and Swap discard input, so every tool's Reset / Swap gets an Undo
+  var UNDOABLE = { Reset: 'Reset complete', Swap: 'Output moved to input' };
+  function withUndo(btn, fn, msg) {
+    return function (e) {
+      var scope = btn.closest('.tool');
+      if (!scope) return fn(e);
+      var restore = snapshot(scope), r = fn(e);
+      CK.toast(msg, 'success', { label: 'Undo', fn: function () { restore(); CK.toast('Restored', 'success'); } });
+      return r;
+    };
+  }
+
   function iconBtn(inner, label, onClick) {
-    var b = el('button', { class: 'ib', title: label });
+    var b = el('button', { class: 'ib', title: label, 'aria-label': label });
     b.innerHTML = iconSvg(inner, 15) + '<span class="lbl"></span>';
     b.querySelector('.lbl').textContent = label;
-    if (onClick) b.addEventListener('click', onClick);
+    if (onClick) b.addEventListener('click', UNDOABLE[label] ? withUndo(b, onClick, UNDOABLE[label]) : onClick);
     return b;
   }
 
@@ -110,15 +140,16 @@ CK.ui = (function () {
     var fire = function () { if (cfg.onInput) cfg.onInput(); };
     var prims = cfg.primaries || (cfg.primary ? [cfg.primary] : []);
     var primBtns = [], busy = false;
-    function clearBusy() { busy = false; applyGate(); }
-    prims.forEach(function (pr) {
+    prims.forEach(function (pr, i) {
       var p = el('button', { class: 'prim ' + (pr.cls || '') });
       p.textContent = pr.label;
+      if (i === 0) p.title = pr.label + ' (' + RUN_KEY + ')';
+      function done() { busy = false; p.classList.remove('busy'); p.removeAttribute('aria-busy'); applyGate(); }
       p.addEventListener('click', function () {
         if (busy) return;
         var r = pr.onClick();
-        // If the handler is async (returns a promise), lock the primaries until it settles
-        if (r && typeof r.then === 'function') { busy = true; applyGate(); r.then(clearBusy, clearBusy); }
+        // If the handler is async (returns a promise), lock the primaries and show a spinner until it settles
+        if (r && typeof r.then === 'function') { busy = true; p.classList.add('busy'); p.setAttribute('aria-busy', 'true'); applyGate(); r.then(done, done); }
       });
       primBtns.push(p); tb.appendChild(p);
     });
@@ -128,7 +159,11 @@ CK.ui = (function () {
       else if (a === 'paste') tb.appendChild(iconBtn(IC.paste, 'Paste', function () {
         CK.paste().then(function (t) { if (t != null) { ta.value = t; fire(); } });
       }));
-      else if (a === 'clear') tb.appendChild(iconBtn(IC.clear, 'Clear', function () { ta.value = ''; fire(); }));
+      else if (a === 'clear') tb.appendChild(iconBtn(IC.clear, 'Clear', function () {
+        var was = ta.value; if (!was) return;
+        ta.value = ''; fire();
+        CK.toast('Cleared', 'success', { label: 'Undo', fn: function () { ta.value = was; fire(); } });
+      }));
       else if (a === 'download') { var dlB = iconBtn(IC.download, 'Download', function () { CK.download(ta.value, cfg.downloadName || 'output.txt'); }); gated.push(dlB); tb.appendChild(dlB); }
     });
     hdr.appendChild(fill); hdr.appendChild(tb);
@@ -153,6 +188,13 @@ CK.ui = (function () {
     var vd = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
     Object.defineProperty(ta, 'value', { configurable: true, get: function () { return vd.get.call(ta); }, set: function (v) { vd.set.call(ta, v); updateCount(); } });
     if (cfg.onInput) ta.addEventListener('input', cfg.onInput);
+    // Ctrl/Cmd+Enter runs this panel's main action, else the tool's first available one
+    ta.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey)) return;
+      var scope = panel.closest('.tool') || panel;
+      var p = primBtns.filter(function (b) { return !b.disabled; })[0] || scope.querySelector('.prim:not(:disabled)');
+      if (p) { e.preventDefault(); p.click(); }
+    });
     updateCount();
     return { panel: panel, ta: ta, onContent: function (fn) { contentSubs.push(fn); } };
   }

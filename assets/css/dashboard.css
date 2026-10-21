@@ -26,6 +26,8 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 svg{display:block;}
+/* Theme switch: no transitions for that one frame, so nothing fades in from the old theme */
+.theme-switching *, .theme-switching *::before, .theme-switching *::after{transition:none !important;}
 button{font-family:inherit;}
 
 /* Slim scrollbars across every tool and scrollable area */
@@ -37,11 +39,11 @@ button{font-family:inherit;}
 
 /* Slim top bar */
 header{
-  display:flex; align-items:center; gap:9px; padding:0 16px;
-  border-bottom:1px solid var(--bdr); background:var(--surf); flex-shrink:0; height:44px;
+  display:flex; align-items:center; gap:7px; padding:0 12px;
+  background:var(--surf); flex-shrink:0; height:38px; box-shadow:0 1px 3px var(--shd); position:relative; z-index:45;
 }
 .brand{
-  display:flex; align-items:center; gap:8px; font-size:19px; font-weight:800; letter-spacing:-.4px;
+  display:flex; align-items:center; gap:7px; font-size:17px; font-weight:800; letter-spacing:-.4px;
   background:linear-gradient(120deg,#3b82f6,#8b5cf6);
   -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   text-decoration:none;
@@ -51,24 +53,24 @@ header{
 .dot{width:3px; height:3px; border-radius:50%; background:var(--faint);}
 .spacer{flex:1;}
 .icon-btn{
-  width:28px; height:28px; border-radius:7px; background:var(--inset); border:1px solid var(--bdr);
+  width:28px; height:28px; border-radius:7px; background:var(--inset2); border:none;
   display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; transition:.15s;
 }
-.icon-btn:hover{color:var(--acc); border-color:var(--acc);}
+.icon-btn:hover{color:var(--acc); background:rgba(59,130,246,.14);}
 /* Sidebar show/hide toggle, on the tool-title line at every screen size */
 .nav-open{
   display:inline-flex; width:30px; height:30px; border-radius:8px; flex-shrink:0;
-  background:var(--inset); border:1px solid var(--bdr); color:var(--muted);
+  background:var(--inset2); border:none; color:var(--muted);
   align-items:center; justify-content:center; cursor:pointer; transition:.13s;
 }
-.nav-open:hover{color:var(--acc); border-color:var(--acc);}
+.nav-open:hover{color:var(--acc); background:rgba(59,130,246,.14);}
 
 /* Shell: content is full width; the sidebar is an off-canvas drawer at every size */
 .shell{flex:1; display:grid; grid-template-columns:1fr; min-height:0;}
 
 /* Sidebar drawer: hidden by default, slides in when body has .drawer-open */
 nav{
-  position:fixed; top:44px; left:0; bottom:0; width:224px; z-index:40;
+  position:fixed; top:38px; left:0; bottom:0; width:224px; z-index:40;
   border-right:1px solid var(--bdr); background:var(--surf); padding:10px 9px;
   display:flex; flex-direction:column; min-height:0; overflow:hidden;
   transform:translateX(-100%); transition:transform .22s ease; box-shadow:0 10px 34px rgba(0,0,0,.28);
@@ -78,22 +80,22 @@ body.drawer-open nav{transform:translateX(0);}
 .nav-scroll::-webkit-scrollbar{width:5px;}
 .nav-scroll::-webkit-scrollbar-thumb{background:var(--bdr); border-radius:3px;}
 .grp{
-  font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--faint); padding:11px 8px 4px;
+  font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); padding:12px 8px 5px;
 }
 .grp:first-child{padding-top:2px;}
 .item{
   display:flex; align-items:center; gap:9px; padding:6px 9px; border-radius:7px;
-  font-size:12.5px; font-weight:500; color:var(--txt); cursor:pointer;
-  border:1px solid transparent; transition:.13s; width:100%; text-align:left; background:none;
+  font-size:13px; font-weight:500; color:var(--txt); cursor:pointer;
+  border:none; transition:.13s; width:100%; text-align:left; background:none;
 }
 .item svg{stroke:var(--muted); flex-shrink:0;}
 .item .tag{
   margin-left:auto; font-size:9px; font-weight:700; padding:1px 7px; border-radius:20px;
-  background:var(--inset2); color:var(--faint); font-family:'SF Mono','Consolas',monospace;
+  background:var(--inset2); color:var(--muted); font-family:'SF Mono','Consolas',monospace;
 }
 .item:hover{background:var(--inset);}
-.item.active{background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.28); color:#c2760a; font-weight:600;}
+.item.active{background:rgba(245,158,11,.14); color:#c2760a; font-weight:600;}
 .item.active svg{stroke:var(--warn);}
 .item.active .tag{background:rgba(245,158,11,.16); color:#c2760a;}
 
@@ -101,8 +103,8 @@ body.drawer-open nav{transform:translateX(0);}
    Fill the viewport when there is room, but scroll instead of clipping when
    the window is too short (or a config panel is tall) so nothing overlaps or
    gets cut off on small screens. */
-main{padding:12px 14px; overflow-x:hidden; overflow-y:auto; display:flex; flex-direction:column; min-width:0; gap:9px;}
-.tool{display:flex; flex-direction:column; gap:9px; min-height:0; flex:1;}
+main{padding:8px; overflow-x:hidden; overflow-y:auto; display:flex; flex-direction:column; min-width:0; gap:6px;}
+.tool{display:flex; flex-direction:column; gap:6px; min-height:0; flex:1;}
 .tool[hidden]{display:none;}
 .tool-head{display:flex; align-items:center; gap:9px; flex-shrink:0;}
 .tool-head h1{
@@ -117,18 +119,18 @@ main{padding:12px 14px; overflow-x:hidden; overflow-y:auto; display:flex; flex-d
 
 /* Panels */
 .panel{
-  background:var(--surf); border:1px solid var(--cbdr); border-radius:12px;
+  background:var(--surf); border:none; border-radius:12px; box-shadow:0 1px 3px var(--shd);
   min-height:0; display:flex; flex-direction:column;
 }
 .panel-hdr{
-  font-size:10px; font-weight:800; letter-spacing:.07em; color:var(--faint);
+  font-size:11px; font-weight:800; letter-spacing:.07em; color:var(--muted);
   display:flex; align-items:center; gap:6px;
 }
-.panel-hdr svg{stroke:var(--faint);}
+.panel-hdr svg{stroke:var(--muted);}
 
 /* Configuration */
 .config{flex-shrink:0;}
-.cfg-strip{display:flex; align-items:center; gap:12px; padding:10px 13px; border-bottom:1px solid var(--bdr);}
+.cfg-strip{display:flex; align-items:center; gap:12px; padding:10px 13px 4px;}
 .sel{display:flex; align-items:center; gap:10px; min-width:0; flex:1;}
 .sel-ico{
   width:32px; height:32px; border-radius:9px; background:rgba(59,130,246,.12); color:var(--acc);
@@ -145,49 +147,56 @@ main{padding:12px 14px; overflow-x:hidden; overflow-y:auto; display:flex; flex-d
 
 /* Primary action buttons (solid, flat) */
 .prim{
-  padding:5px 12px; border-radius:7px; font-size:11.5px; font-weight:700; color:#fff; border:none;
+  min-height:28px; padding:4px 11px; border-radius:7px; font-size:12.5px; font-weight:700; color:#fff; border:none;
   display:inline-flex; align-items:center; gap:5px; cursor:pointer; transition:.13s;
 }
 .prim:hover{filter:brightness(1.06);}
 .prim:disabled{opacity:.45; cursor:not-allowed; pointer-events:none;}
-.dec{background:var(--acc);}
-.enc{background:var(--ok);}
+.prim.busy{opacity:.9;}
+.prim.busy::before{content:''; width:11px; height:11px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:ck-spin .7s linear infinite;}
+@keyframes ck-spin{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){.prim.busy::before{animation-duration:2s;}}
+.dec{background:#2563eb;} /* blue-600: white text 5.2:1 (WCAG AA) */
+.enc{background:#047857;} /* emerald-700: white text 5.5:1 (WCAG AA) */
 
 /* Icon-only buttons: label reveals on hover */
 .ib{
-  height:30px; padding:0 8px; border-radius:8px; background:var(--inset); border:1px solid var(--bdr);
+  height:28px; padding:0 7px; border-radius:7px; background:var(--inset2); border:none;
   color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.13s;
 }
-.ib:hover{color:var(--acc); border-color:var(--acc); background:var(--surf);}
+.ib:hover{color:var(--acc); background:rgba(59,130,246,.14);}
 .ib:disabled{opacity:.4; cursor:not-allowed; pointer-events:none;}
 .ib .lbl{
   max-width:0; overflow:hidden; opacity:0; white-space:nowrap; font-size:11px; font-weight:600;
   transition:max-width .2s, opacity .2s, margin .2s;
 }
 .ib:hover .lbl{max-width:90px; opacity:1; margin-left:5px;}
+/* Tool-level actions (Verify, Share, Reset...) always show their names */
+.acts .ib{height:28px; padding:0 8px;}
+.acts .ib .lbl{max-width:none; opacity:1; margin-left:5px;}
 
 /* Encoding / algorithm picker: grouped uniform grid */
 .picker{padding:11px 13px; display:grid; grid-template-columns:auto 1fr; gap:9px 14px; align-items:center;}
 .pk-label{
   font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
-  color:var(--faint); text-align:right; white-space:nowrap;
+  color:var(--muted); text-align:right; white-space:nowrap;
 }
 .pk-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:4px;}
 /* Stacked picker: subtype label above its ciphers (vertical) */
 .picker.stacked{display:block; padding:2px 0;}
 .picker.stacked .pk-label{text-align:left; padding:9px 2px 4px;}
 .picker.stacked .pk-grid{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:2px;}
-.picker.stacked .eb{padding:4px 12px;}
+.picker.stacked .eb{padding:3px 9px;}
 .eb{
-  padding:3px 7px; border:1px solid var(--bdr); border-radius:6px; background:var(--inset); color:var(--muted);
+  padding:3px 7px; border:none; border-radius:6px; background:var(--inset2); color:var(--muted);
   font-size:10.5px; font-weight:600; cursor:pointer; transition:.12s; text-align:center;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.eb:hover{color:var(--txt); border-color:var(--faint); background:var(--surf);}
-.eb.active{background:var(--acc); color:#fff; border-color:var(--acc);}
+.eb:hover{color:var(--acc); background:rgba(59,130,246,.14);}
+.eb.active{background:#2563eb; color:#fff;}
 
 /* Input / Output */
-.io{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:9px; min-height:0;}
+.io{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:6px; min-height:0;}
 .io-1col{grid-template-columns:1fr;}
 /* Keep panels usably tall; when they cannot all fit, main scrolls rather than
    squeezing them into each other. */
@@ -195,19 +204,19 @@ main{padding:12px 14px; overflow-x:hidden; overflow-y:auto; display:flex; flex-d
 .fill{flex:1;}
 .tb{display:flex; gap:4px; align-items:center;}
 .btn.mini{
-  padding:4px 9px; font-size:10.5px; font-weight:600; border-radius:6px; background:var(--inset);
-  border:1px solid var(--bdr); color:var(--muted); cursor:pointer; transition:.12s;
+  padding:3px 8px; font-size:10.5px; font-weight:600; border-radius:6px; background:var(--inset2);
+  border:none; color:var(--muted); cursor:pointer; transition:.12s;
 }
-.btn.mini:hover{color:var(--txt); border-color:var(--faint); background:var(--surf);}
+.btn.mini:hover{color:var(--acc); background:rgba(59,130,246,.14);}
 .ta{
-  flex:1; background:var(--inset); border:1px solid var(--bdr); border-radius:9px; padding:12px;
+  flex:1; background:var(--inset); border:none; border-radius:9px; padding:12px;
   font-family:'SF Mono','Fira Code','Consolas',monospace; font-size:12.5px; line-height:1.7; color:var(--txt);
   overflow:auto; white-space:pre-wrap; word-break:break-all; resize:none; width:100%; outline:none;
 }
-.ta:focus{border-color:var(--bdr); outline:none; box-shadow:none;}
-.ta::placeholder{color:var(--muted); opacity:.55; font-style:italic;}
-.ta.verify-match{border-color:var(--ok); background:rgba(16,185,129,.06);}
-.ta.verify-fail{border-color:var(--err); background:rgba(239,68,68,.06);}
+.ta:focus{outline:none; box-shadow:none;}
+.ta::placeholder{color:var(--muted); opacity:.8; font-style:italic;}
+.ta.verify-match{background:rgba(16,185,129,.16);}
+.ta.verify-fail{background:rgba(239,68,68,.16);}
 .char-count{
   position:absolute; bottom:19px; right:23px; pointer-events:none; z-index:2;
   font-size:10px; font-weight:800; letter-spacing:.02em; font-family:'SF Mono','Consolas',monospace;
@@ -226,14 +235,16 @@ main{padding:12px 14px; overflow-x:hidden; overflow-y:auto; display:flex; flex-d
 
 /* Compact form controls for tool config panels */
 .field{display:flex; flex-direction:column; gap:3px;}
-.field > label{font-size:11px; font-weight:600; color:var(--muted);}
+.field > label{font-size:12px; font-weight:600; color:var(--muted);}
 .cfg-form{padding:11px 13px; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end;}
 .inp{
-  background:var(--inset); color:var(--txt); border:1px solid var(--bdr); border-radius:6px;
-  padding:6px 8px; font-size:12.5px; outline:none; transition:border-color .15s; width:100%;
+  background:var(--inset2); color:var(--txt); border:none; border-radius:6px;
+  padding:6px 8px; font-size:12.5px; outline:none; transition:background .15s, box-shadow .15s; width:100%;
   -webkit-appearance:none; appearance:none;
 }
-.inp:focus{border-color:var(--bdr); outline:none; box-shadow:none;}
+.inp:focus{outline:none; box-shadow:none;}
+/* Dropdowns have no caret, so keyboard focus needs a visible ring */
+select.inp:focus-visible{box-shadow:0 0 0 2px rgba(59,130,246,.55);}
 .inp.sm{width:auto; min-width:64px;}
 
 /* Dropdown affordance: chevron so selects don't read as plain buttons */
@@ -242,10 +253,10 @@ select.inp{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888f9c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 8px center; background-size:11px;
 }
-select.inp:hover{border-color:var(--muted);}
+select.inp:hover{background-color:rgba(59,130,246,.14);}
 
 /* Toolbar icon buttons sit slightly tighter than standalone act buttons */
-.tb .ib{height:27px;}
+.tb .ib{height:28px; min-width:28px;}
 
 /* Two-column config grid (e.g. AES): left keys, right options 2x2 */
 .cfg-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 18px; padding:11px 13px;}
@@ -279,7 +290,7 @@ select.inp:hover{border-color:var(--muted);}
 }
 .row-out{display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--bdr);}
 .row-out:last-child{border-bottom:none;}
-.row-out .k{font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); width:88px; flex-shrink:0;}
+.row-out .k{font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); width:88px; flex-shrink:0;}
 .row-out .v{flex:1; font-family:'SF Mono','Fira Code','Consolas',monospace; font-size:12.5px; word-break:break-all; color:var(--txt);}
 .row-out.cmp-hit{background:rgba(16,185,129,.1); border-radius:6px;}
 .row-out.cmp-hit .v{color:var(--ok);}
@@ -287,9 +298,10 @@ select.inp:hover{border-color:var(--muted);}
 /* Switch toggle (labelled) */
 .switch{display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:var(--txt); user-select:none;}
 .switch > input{position:absolute; opacity:0; width:0; height:0;}
-.switch .track{width:34px; height:18px; border-radius:20px; background:var(--inset2); border:1px solid var(--bdr); position:relative; transition:.2s; flex-shrink:0;}
+.switch .track{width:34px; height:18px; border-radius:20px; background:var(--inset2); border:none; position:relative; transition:.2s; flex-shrink:0;}
 .switch .track::after{content:''; position:absolute; width:12px; height:12px; border-radius:50%; background:var(--muted); top:2px; left:2px; transition:.2s;}
-.switch > input:checked + .track{background:var(--acc); border-color:var(--acc);}
+.switch > input:checked + .track{background:var(--acc);}
+.switch > input:focus-visible + .track{box-shadow:0 0 0 2px rgba(59,130,246,.55);}
 .switch > input:checked + .track::after{transform:translateX(16px); background:#fff;}
 
 .toggle-row{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--txt); cursor:pointer; user-select:none;}
@@ -335,7 +347,7 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 
 /* File Checksum: drop zone (a .ta so Verify colours it like the text panels) */
 .cs-drop{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; cursor:pointer; font-family:inherit; white-space:normal; word-break:break-word; min-height:150px;}
-.cs-drop:hover, .cs-drop.drag{border-color:var(--acc);}
+.cs-drop:hover, .cs-drop.drag{background:rgba(59,130,246,.14);}
 .cs-drop.drag{background:rgba(59,130,246,.06);}
 .cs-drop svg{stroke:var(--faint);}
 .cs-drop .cs-name{font-size:13px; font-weight:700; color:var(--txt);}
@@ -344,9 +356,9 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 
 /* HTML Viewer: sandboxed preview frame and captured console */
 .html-frame{flex:1; width:100%; min-height:240px; border:1px solid var(--bdr); border-radius:9px; background:#fff;}
-.html-console{border:1px solid var(--bdr); border-radius:9px; background:var(--inset); display:flex; flex-direction:column; max-height:150px; flex-shrink:0;}
-.html-console-hdr{display:flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; border-bottom:1px solid var(--bdr); font-size:10px; font-weight:800; letter-spacing:.07em; color:var(--faint);}
-.html-console-hdr svg{stroke:var(--faint);}
+.html-console{border:none; border-radius:9px; background:var(--inset); display:flex; flex-direction:column; max-height:150px; flex-shrink:0;}
+.html-console-hdr{display:flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; border-bottom:1px solid var(--bdr); font-size:11px; font-weight:800; letter-spacing:.07em; color:var(--muted);}
+.html-console-hdr svg{stroke:var(--muted);}
 .html-console-hdr .ib{height:24px;}
 .html-console-body{overflow:auto; min-height:34px; font-family:'SF Mono','Fira Code','Consolas',monospace; font-size:11.5px; line-height:1.5;}
 .html-console-body:empty::after{content:'Console output appears here.'; display:block; padding:7px 10px; color:var(--muted); font-style:italic; opacity:.6;}
@@ -381,14 +393,21 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 }
 .home-hero p{font-size:12.5px; color:var(--muted); margin:9px auto 0; max-width:760px; line-height:1.55;}
 .home-search{
-  display:block; width:100%; max-width:440px; margin:16px auto 22px;
-  background:var(--inset); color:var(--txt); border:1px solid var(--bdr); border-radius:999px;
-  padding:9px 16px 9px 38px; font-size:13px; outline:none; transition:border-color .15s;
+  display:block; width:100%;
+  background:var(--inset); color:var(--txt); border:none; border-radius:999px;
+  padding:9px 42px 9px 38px; font-size:13px; outline:none; transition:box-shadow .15s;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888f9c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:13px center; background-size:15px;
 }
-.home-search:focus{border-color:var(--acc);}
+.home-search:focus{box-shadow:0 0 0 2px rgba(59,130,246,.55);}
 .home-search::placeholder{color:var(--muted);}
+.home-search-wrap{position:relative; max-width:440px; margin:16px auto 22px;}
+.home-kbd{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none;
+  font-family:'SF Mono','Consolas',monospace; font-size:11px; font-weight:700; line-height:1;
+  padding:4px 2px; color:var(--muted);
+}
+.home-search:focus + .home-kbd, .home-search:not(:placeholder-shown) + .home-kbd{display:none;}
 /* Borderless masonry: 3 balanced columns, sections separated by a colored
    header underline (set per category in core.js). */
 .home-grid{column-count:3; column-gap:16px;}
@@ -406,16 +425,16 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 .hcc-desc{font-size:11px; color:var(--muted); line-height:1.35;}
 .hcc-tools{display:flex; flex-direction:column; gap:1px;}
 .hcc-tool{
-  display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:7px; width:100%; text-align:left;
-  background:none; border:1px solid transparent; color:var(--txt); cursor:pointer; transition:.12s;
+  display:flex; align-items:center; gap:9px; padding:5px 7px; border-radius:7px; width:100%; text-align:left;
+  background:none; border:none; color:var(--txt); cursor:pointer; transition:.12s;
 }
-.hcc-tool:hover{background:var(--inset); border-color:var(--bdr);}
+.hcc-tool:hover{background:var(--inset);}
 .hcc-ticon{color:var(--muted); flex-shrink:0; display:flex;}
 .hcc-tool:hover .hcc-ticon{color:var(--acc);}
 .hcc-tname{font-size:12px; font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .hcc-ttag{
   font-size:9px; font-weight:700; padding:2px 8px; border-radius:20px; flex-shrink:0;
-  background:var(--inset2); color:var(--faint); font-family:'SF Mono','Consolas',monospace;
+  background:var(--inset2); color:var(--muted); font-family:'SF Mono','Consolas',monospace;
 }
 
 /* Toast */
@@ -425,13 +444,16 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
   opacity:0; pointer-events:none; transition:opacity .18s, transform .18s;
   border:1px solid var(--bdr); background:var(--surf); color:var(--txt); box-shadow:0 6px 22px var(--shd);
 }
-.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; cursor:pointer;}
+.toast{display:flex; align-items:center; gap:14px;}
+.toast-act{font:inherit; font-weight:800; color:var(--acc); background:none; border:none; cursor:pointer; padding:4px 2px; text-decoration:underline; text-underline-offset:3px;}
+.toast-act:hover{color:var(--txt);}
 .toast.success{border-color:rgba(16,185,129,.4); color:var(--ok);}
 .toast.error{border-color:rgba(239,68,68,.4); color:var(--err);}
 .toast.warn{border-color:rgba(245,158,11,.4); color:var(--warn);}
 
 /* Sidebar drawer backdrop (all sizes) */
-.nav-backdrop{display:none; position:fixed; inset:44px 0 0 0; background:rgba(0,0,0,.42); z-index:35;}
+.nav-backdrop{display:none; position:fixed; inset:38px 0 0 0; background:rgba(0,0,0,.42); z-index:35;}
 body.drawer-open .nav-backdrop{display:block;}
 
 /* Small screens: switch from the fixed-viewport app shell to natural document
@@ -442,7 +464,7 @@ body.drawer-open .nav-backdrop{display:block;}
   body{height:auto; min-height:100vh; overflow:visible; display:block;}
   header{position:sticky; top:0; z-index:50;}
   .shell{display:block; min-height:0;}
-  main{overflow:visible; height:auto; padding:12px 12px 24px;}
+  main{overflow:visible; height:auto; padding:8px 8px 24px;}
   .tool{flex:none;}
   /* minmax(0,1fr) stops a panel's non-wrapping header toolbar from forcing the
      column wider than the viewport (which clipped input/output on the right) */

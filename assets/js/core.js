@@ -47,8 +47,14 @@ var CK = (function () {
       this._icon(t);
     },
     toggle: function () {
-      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
+      var root = document.documentElement;
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      // Switch every colour at once: otherwise controls with hover transitions
+      // fade from the old theme and flash light/dark against the new one.
+      root.classList.add('theme-switching');
+      root.setAttribute('data-theme', next);
+      void root.offsetWidth; // apply the new colours while transitions are off
+      requestAnimationFrame(function () { root.classList.remove('theme-switching'); });
       store.set('theme', next);
       this._icon(next);
     },
@@ -58,21 +64,31 @@ var CK = (function () {
     }
   };
 
-  /* Toast */
+  /* Toast. Optional action = { label, fn } adds a button (e.g. Undo).
+     Errors and actionable toasts stay longer so they can be read and used;
+     clicking the toast dismisses it. Announced to screen readers. */
   var _toastEl = null, _toastTimer = null;
-  function toast(msg, type) {
+  function _hideToast() { if (_toastEl) _toastEl.classList.remove('show'); }
+  function toast(msg, type, action) {
     type = type || 'success';
     if (!_toastEl) {
-      _toastEl = el('div', { class: 'toast' });
+      _toastEl = el('div', { class: 'toast', role: 'status', 'aria-live': 'polite' });
+      _toastEl.addEventListener('click', _hideToast);
       document.body.appendChild(_toastEl);
     }
     _toastEl.textContent = msg;
+    if (action) {
+      var b = el('button', { class: 'toast-act' });
+      b.textContent = action.label;
+      b.addEventListener('click', function (e) { e.stopPropagation(); _hideToast(); action.fn(); });
+      _toastEl.appendChild(b);
+    }
     _toastEl.className = 'toast ' + type;
     // force reflow so re-triggering the transition works
     void _toastEl.offsetWidth;
     _toastEl.classList.add('show');
     clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(function () { _toastEl.classList.remove('show'); }, 2600);
+    _toastTimer = setTimeout(_hideToast, action || type === 'error' ? 6000 : type === 'warn' ? 4000 : 2600);
   }
 
   /* Clipboard */
@@ -253,8 +269,19 @@ var CK = (function () {
     inner.appendChild(hero);
 
     // Live tool search
-    var search = el('input', { class: 'home-search', type: 'search', placeholder: 'Search tools...', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Search tools' });
-    inner.appendChild(search);
+    var search = el('input', { class: 'home-search', type: 'search', placeholder: 'Search tools...', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Search tools', 'aria-keyshortcuts': '/' });
+    // "/" focuses the search from anywhere on the home page (unless typing in a field)
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== '/' || _active !== null || e.ctrlKey || e.metaKey || e.altKey) return;
+      var t = e.target.tagName;
+      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || e.target.isContentEditable) return;
+      e.preventDefault(); search.focus();
+    });
+    // Search box with a right-aligned "/" shortcut hint (hidden while typing)
+    var searchWrap = el('div', { class: 'home-search-wrap' });
+    searchWrap.appendChild(search);
+    searchWrap.appendChild(el('kbd', { class: 'home-kbd', 'aria-hidden': 'true' }, '/'));
+    inner.appendChild(searchWrap);
 
     var grid = el('div', { class: 'home-grid' });
     var sections = [];
