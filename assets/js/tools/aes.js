@@ -5,24 +5,19 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, randomSecret = CK.randomSecret;
   var C = window.CryptoJS;
 
   function toWA(str, fmt) {
     if (!str) return C.lib.WordArray.create();
-    if (fmt === 'hex') return C.enc.Hex.parse(str.replace(/\s/g, ''));
-    if (fmt === 'base64') return C.enc.Base64.parse(str.trim());
+    if (fmt === 'hex') return C.enc.Hex.parse(CK.toHex(CK.hexToBytes(str)));
+    if (fmt === 'base64') return C.enc.Base64.parse(CK.b64(CK.unb64(str)));
     return C.enc.Utf8.parse(str);
   }
   function waToStr(wa, fmt) {
     if (fmt === 'hex') return wa.toString(C.enc.Hex);
     if (fmt === 'base64') return wa.toString(C.enc.Base64);
     return wa.toString(C.enc.Utf8);
-  }
-  function keyBytes(val, fmt) {
-    if (!val) return 0;
-    if (fmt === 'hex') return val.replace(/\s/g, '').length / 2;
-    if (fmt === 'base64') { var s = val.replace(/\s/g, ''); var pad = /==$/.test(s) ? 2 : /=$/.test(s) ? 1 : 0; return Math.floor(s.length * 3 / 4) - pad; }
-    return new TextEncoder().encode(val).length;
   }
   var MODES = { CBC: C.mode.CBC, ECB: C.mode.ECB, CFB: C.mode.CFB, OFB: C.mode.OFB, CTR: C.mode.CTR };
   var PADS = { Pkcs7: C.pad.Pkcs7, ZeroPadding: C.pad.ZeroPadding, Iso10126: C.pad.Iso10126, AnsiX923: C.pad.Ansix923, NoPadding: C.pad.NoPadding };
@@ -49,14 +44,6 @@
   }
   function fmtLabelOf(fmt) { return fmt === 'hex' ? 'Hexadecimal' : fmt === 'base64' ? 'Base64' : 'UTF-8'; }
 
-  function rndBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
-  function bytesToFmt(bytes, fmt) {
-    if (fmt === 'hex') { var h = ''; for (var i = 0; i < bytes.length; i++) h += bytes[i].toString(16).padStart(2, '0'); return h; }
-    if (fmt === 'base64') { var s = ''; for (var j = 0; j < bytes.length; j++) s += String.fromCharCode(bytes[j]); return btoa(s); }
-    var u = ''; for (var k = 0; k < bytes.length; k++) u += String.fromCharCode(33 + (bytes[k] % 94)); return u; // printable UTF-8
-  }
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   CK.registerTool('aes', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -82,14 +69,14 @@
 
     var keyInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Encryption key' });
     var keyFmt = ui.select(['utf8', 'hex', 'base64'].map(fmtOpt), function () { updateSel(); }, 'utf8');
-    var keyGen = ui.iconBtn(I_SHUF, 'Random key', function () { keyInput.value = bytesToFmt(rndBytes(32), keyFmt.value); updateSel(); });
+    var keyGen = ui.iconBtn(I_SHUF, 'Random key', function () { keyInput.value = randomSecret(32, keyFmt.value); updateSel(); });
     var keyWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     keyInput.style.flex = '1'; keyFmt.style.width = 'auto'; keyWrap.appendChild(keyInput); keyWrap.appendChild(keyFmt); keyWrap.appendChild(keyGen);
     var keyField = ui.field('Key', keyWrap);
 
     var ivInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Initialization vector (16 bytes)' });
     var ivFmt = ui.select(['utf8', 'hex', 'base64'].map(fmtOpt), null, 'hex');
-    var ivGen = ui.iconBtn(I_SHUF, 'Random initialization vector', function () { ivInput.value = bytesToFmt(rndBytes(16), ivFmt.value); });
+    var ivGen = ui.iconBtn(I_SHUF, 'Random initialization vector', function () { ivInput.value = randomSecret(16, ivFmt.value); });
     var ivWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     ivInput.style.flex = '1'; ivFmt.style.width = 'auto'; ivWrap.appendChild(ivInput); ivWrap.appendChild(ivFmt); ivWrap.appendChild(ivGen);
     var ivField = ui.field('Initialization Vector', ivWrap);
@@ -122,21 +109,25 @@
 
     keyInput.addEventListener('input', updateSel);
     function updateSel() {
-      var kb = keyBytes(keyInput.value, keyFmt.value);
+      var kb; try { kb = toWA(keyInput.value, keyFmt.value).sigBytes; } catch (e) { kb = -1; }
       var size = kb === 0 ? '256' : kb === 16 ? '128' : kb === 24 ? '192' : kb === 32 ? '256' : '?';
       var mode = modeSel.value;
       ivField.style.visibility = mode === 'ECB' ? 'hidden' : '';
       padF.style.visibility = /CFB|OFB|CTR/.test(mode) ? 'hidden' : '';
-      ui.setSel(strip, 'AES-' + size + '-' + mode, kb ? kb + ' bytes' : 'default', size === '?' ? 'Key must be 16, 24, or 32 bytes for AES-128/192/256' : 'AES-' + size + ' in ' + mode + ' mode');
+      ui.setSel(strip, 'AES-' + size + '-' + mode, kb > 0 ? kb + ' bytes' : kb ? 'invalid' : 'default', size === '?' ? 'Key must be 16, 24, or 32 bytes for AES-128/192/256' : 'AES-' + size + ' in ' + mode + ' mode');
+    }
+    // crypto-js silently zero-pads a short IV and accepts any key length, giving non-standard AES
+    function checkKeyIv() {
+      var k = toWA(keyInput.value, keyFmt.value).sigBytes;
+      if (k !== 16 && k !== 24 && k !== 32) throw new Error('Key must be 16, 24, or 32 bytes (got ' + k + ')');
+      if (modeSel.value !== 'ECB') { var v = toWA(ivInput.value, ivFmt.value).sigBytes; if (v !== 16) throw new Error('IV must be 16 bytes for ' + modeSel.value + ' (got ' + v + ')'); }
     }
     function opts() { var oo = { mode: MODES[modeSel.value], padding: PADS[padSel.value] }; if (modeSel.value !== 'ECB') oo.iv = toWA(ivInput.value, ivFmt.value); return oo; }
     function doEncrypt() {
       try {
         if (!keyInput.value) throw new Error('Key required');
         if (!inP.ta.value) throw new Error('Plaintext is empty');
-        var kb = keyBytes(keyInput.value, keyFmt.value);
-        if (kb !== 16 && kb !== 24 && kb !== 32) throw new Error('Key must be 16, 24, or 32 bytes (got ' + kb + ')');
-        if (modeSel.value !== 'ECB' && !ivInput.value) throw new Error('IV required for ' + modeSel.value);
+        checkKeyIv();
         if (ctFmt.value === 'utf8') ctFmt.value = 'base64'; // ciphertext default is Base64
         var res = C.AES.encrypt(toWA(inP.ta.value, ptFmt.value), toWA(keyInput.value, keyFmt.value), opts());
         outP.ta.value = res.ciphertext.toString(ctFmt.value === 'hex' ? C.enc.Hex : C.enc.Base64);
@@ -148,6 +139,7 @@
       try {
         if (!keyInput.value) throw new Error('Key required');
         if (!inP.ta.value) throw new Error('Input is empty');
+        checkKeyIv();
         var res = C.AES.decrypt({ ciphertext: toWA(inP.ta.value, ctInFmt(inP.ta.value)) }, toWA(keyInput.value, keyFmt.value), opts());
         if (res.sigBytes <= 0) throw new Error('wrong key, IV, mode or padding');
         if (ctFmt.value === 'base64') ctFmt.value = 'utf8'; // decrypted default is Plain text
@@ -162,6 +154,7 @@
       if (!keyInput.value) { ctx.toast('Key required', 'warn'); return; }
       var a = inP.ta.value, b = outP.ta.value;
       if (!a || !b) { ctx.toast('Both panels need content', 'warn'); return; }
+      try { checkKeyIv(); } catch (e) { ctx.toast(e.message, 'error'); return; }
       var kw = toWA(keyInput.value, keyFmt.value);
       function enc(src) { try { return C.AES.encrypt(toWA(src, ptFmt.value), kw, opts()).ciphertext.toString(ctFmt.value === 'hex' ? C.enc.Hex : C.enc.Base64); } catch (e) { return null; } }
       function dec(src) { try { var r = C.AES.decrypt({ ciphertext: toWA(src, ctInFmt(src)) }, kw, opts()); return r.sigBytes > 0 ? waToStr(r, ctFmt.value) : null; } catch (e) { return null; } }

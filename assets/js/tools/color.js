@@ -6,9 +6,8 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
 
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
   function hslToRgb(h, s, l) {

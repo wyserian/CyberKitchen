@@ -7,15 +7,8 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
   var ENC = new TextEncoder(), DEC = new TextDecoder();
-  function b64(bytes) { var s = ''; bytes = new Uint8Array(bytes); for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
-  function unb64(str) { str = str.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
-  function toHex(bytes) { bytes = new Uint8Array(bytes); var s = ''; for (var i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0'); return s; }
-  function hexToBytes(h) { h = h.replace(/\s/g, ''); if (!/^[0-9a-fA-F]*$/.test(h) || h.length % 2) throw new Error('Invalid hexadecimal'); var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
-  function pem(label, buf) { return '-----BEGIN ' + label + '-----\n' + b64(buf).replace(/(.{64})/g, '$1\n').trim() + '\n-----END ' + label + '-----'; }
-  function unpem(str) { return unb64(str.replace(/-----[^-]+-----/g, '')); }
-  function b64uEnc(str) { var b = ENC.encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return DEC.decode(a); }
 
   /* Minimal DER helpers */
   function cat() { var n = 0, i, parts = Array.prototype.map.call(arguments, function (p) { return p instanceof Uint8Array ? p : new Uint8Array(p); }); for (i = 0; i < parts.length; i++) n += parts[i].length; var o = new Uint8Array(n), off = 0; for (i = 0; i < parts.length; i++) { o.set(parts[i], off); off += parts[i].length; } return o; }

@@ -7,6 +7,7 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
   var DEC = new TextDecoder();
 
   function b64ToBytes(s) { s = s.trim().replace(/\s/g, ''); var bin = atob(s), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
@@ -22,6 +23,7 @@
     if (lenByte < 0x80) len = lenByte;
     else { var n = lenByte & 0x7f; len = 0; for (var i = 0; i < n; i++) len = len * 256 + b[off++]; }
     var contentStart = off, contentEnd = off + len, constructed = (tag & 0x20) !== 0;
+    if (contentEnd > b.length) throw new Error('Truncated or invalid certificate (a length points past the end of the data)');
     var node = { tag: tag, tagNum: tag & 0x1f, cls: (tag >> 6) & 3, constructed: constructed, start: start, contentStart: contentStart, contentEnd: contentEnd };
     if (constructed) { node.children = []; var p = contentStart; while (p < contentEnd) { var c = parseTLV(b, p); node.children.push(c); p = c.contentEnd; } }
     return node;
@@ -121,8 +123,6 @@
     return r;
   }
 
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return DEC.decode(a); }
 
   var I_CERT = '<rect x="4" y="3" width="16" height="13" rx="2"/><circle cx="12" cy="8" r="2.5"/><path d="M9.5 14l-1 6 3.5-2 3.5 2-1-6"/>';
   var I_FILE = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>';

@@ -5,9 +5,8 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
   function lib() { if (typeof bcrypt !== 'undefined') return bcrypt; if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) return dcodeIO.bcrypt; return null; }
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
   function parseBcrypt(h) { var m = /^\$(2[abxy]?)\$(\d{2})\$([./A-Za-z0-9]{53})$/.exec(h); if (!m) return null; return { version: m[1], cost: parseInt(m[2], 10), salt: m[3].slice(0, 22), hashPart: m[3].slice(22) }; }
   // Per-cost guidance and rough in-browser timing (carried over from the standalone bcrypt tool)
   function costGuide(n) {

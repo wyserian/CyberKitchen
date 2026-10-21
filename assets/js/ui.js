@@ -63,13 +63,6 @@ CK.ui = (function () {
     return b;
   }
 
-  function miniBtn(label, onClick) {
-    var b = el('button', { class: 'btn mini' });
-    b.textContent = label;
-    if (onClick) b.addEventListener('click', onClick);
-    return b;
-  }
-
   /* Selected-item strip with an actions area.
      Returns { strip, name, badge, desc, acts } */
   function selStrip(iconInner) {
@@ -233,7 +226,7 @@ CK.ui = (function () {
   }
 
   return {
-    head: head, iconBtn: iconBtn, miniBtn: miniBtn,
+    head: head, iconBtn: iconBtn,
     selStrip: selStrip, setSel: setSel, picker: picker,
     textPanel: textPanel, ioRow: ioRow, configPanel: configPanel, field: field,
     select: select, toggle: toggle

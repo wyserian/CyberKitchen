@@ -6,13 +6,12 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
   var VARIANTS = {
     d: { label: 'argon2d', badge: 'GPU hardened', desc: 'Data-dependent, maximizes GPU resistance' },
     i: { label: 'argon2i', badge: 'Timing safe', desc: 'Data-independent, timing-safe' },
     id: { label: 'argon2id', badge: 'RFC 9106', desc: 'Hybrid of d and i, recommended default' }
   };
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
   function parseArgon2(h) { var m = /^\$argon2([a-z]+)\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$(.+)$/.exec(h); if (!m) return null; return { variant: m[1], version: +m[2], mem: +m[3], time: +m[4], par: +m[5], salt: m[6], hash: m[7] }; }
   // Rough timing estimate from the memory (MiB) x iterations product (carried over from the standalone tool)
   function timingGuide(memKiB, t) {

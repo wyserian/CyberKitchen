@@ -8,27 +8,21 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes, pem = CK.pem, unpem = CK.unpem, randomSecret = CK.randomSecret, unb64 = CK.unb64;
   var ENC = new TextEncoder(), DEC = new TextDecoder();
-  function hexToBytes(h) { h = h.replace(/[^0-9a-fA-F]/g, ''); var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
-  function b64ToBytes(s) { s = s.trim().replace(/\s/g, ''); var bin = atob(s), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
   function b64uBytes(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
   function b64uStr(str) { return b64uBytes(ENC.encode(str)); }
   function unb64u(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
   function unb64uText(str) { return DEC.decode(unb64u(str)); }
-  function unpem(str) { return b64ToBytes(str.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')).buffer; }
 
-  function rndBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
-  function bytesToFmt(b, fmt) { var i, s = ''; if (fmt === 'hex') { for (i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, '0'); return s; } if (fmt === 'base64') { for (i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); } for (i = 0; i < b.length; i++) s += String.fromCharCode(33 + (b[i] % 94)); return s; }
 
-  function b64uEnc(str) { var b = ENC.encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return DEC.decode(a); }
 
   var HASH = { HS256: 'SHA-256', HS384: 'SHA-384', HS512: 'SHA-512', RS256: 'SHA-256' };
 
-  function secretBytes(v, fmt) { if (fmt === 'hex') return hexToBytes(v); if (fmt === 'base64') return b64ToBytes(v); return ENC.encode(v); }
+  function secretBytes(v, fmt) { if (fmt === 'hex') return hexToBytes(v); if (fmt === 'base64') return unb64(v); return ENC.encode(v); }
 
   // signingInput -> Promise<base64url signature>
-  function sign(algo, signingInput, keyState) {
+  function sign(algo, signingInput, keyState) { return Promise.resolve().then(function () {
     var data = ENC.encode(signingInput);
     if (algo === 'RS256') {
       if (!keyState.priv) return Promise.reject(new Error('Private key required for RS256'));
@@ -38,9 +32,9 @@
     if (!keyState.secret) return Promise.reject(new Error('Secret required for ' + algo));
     return crypto.subtle.importKey('raw', secretBytes(keyState.secret, keyState.secretFmt), { name: 'HMAC', hash: { name: HASH[algo] } }, false, ['sign'])
       .then(function (k) { return crypto.subtle.sign('HMAC', k, data); }).then(b64uBytes);
-  }
+  }); }
   // returns Promise<boolean>
-  function verify(algo, signingInput, sigB64u, keyState) {
+  function verify(algo, signingInput, sigB64u, keyState) { return Promise.resolve().then(function () {
     var data = ENC.encode(signingInput), sig = unb64u(sigB64u);
     if (algo === 'RS256') {
       if (!keyState.pub) return Promise.reject(new Error('Public key required for RS256'));
@@ -50,7 +44,7 @@
     if (!keyState.secret) return Promise.reject(new Error('Secret required for ' + algo));
     return crypto.subtle.importKey('raw', secretBytes(keyState.secret, keyState.secretFmt), { name: 'HMAC', hash: { name: HASH[algo] } }, false, ['verify'])
       .then(function (k) { return crypto.subtle.verify('HMAC', k, sig, data); });
-  }
+  }); }
 
   var I_TOKEN = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>';
   var I_CODE = '<path d="M7 7 3 12l4 5M17 7l4 5-4 5M14 4l-4 16"/>';
@@ -78,7 +72,6 @@
     return ka.every(function (k) { return Object.prototype.hasOwnProperty.call(b, k) && sameJson(a[k], b[k]); });
   }
 
-  function pem(label, buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return '-----BEGIN ' + label + '-----\n' + btoa(s).replace(/(.{64})/g, '$1\n').trim() + '\n-----END ' + label + '-----'; }
 
   CK.registerTool('jwt', function (root, ctx) {
     var ui = CK.ui, el = CK.el, algo = 'HS256';
@@ -104,7 +97,7 @@
     // HMAC secret (HS*)
     var secretInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'HMAC secret' });
     var secretFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']].map(o), null, 'utf8');
-    var secretGen = ui.iconBtn(I_SHUF, 'Random secret', function () { secretInput.value = bytesToFmt(rndBytes(32), secretFmt.value); });
+    var secretGen = ui.iconBtn(I_SHUF, 'Random secret', function () { secretInput.value = randomSecret(32, secretFmt.value); });
     var secretWrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     secretInput.style.flex = '1'; secretInput.style.minWidth = '0'; secretFmt.style.width = 'auto';
     secretWrap.appendChild(secretInput); secretWrap.appendChild(secretFmt); secretWrap.appendChild(secretGen);

@@ -6,18 +6,19 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
   if (typeof qrcode !== 'undefined' && qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) {
     qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']; // encode input as UTF-8
   }
 
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   // Build the smallest QR that fits the data at the given level, or null if it does not fit
   function build(text, ecl) {
     for (var t = 1; t <= 40; t++) { try { var qr = qrcode(t, ecl); qr.addData(text); qr.make(); return qr; } catch (e) { } }
     return null;
   }
+  // Colours go into SVG markup: allow only characters that cannot break out of an attribute
+  function colour(v, d) { return /^[#\w(),.%\s-]{1,40}$/.test(v) ? v : d; }
   function svgFrom(qr, fg, bg, margin) {
     var n = qr.getModuleCount(), size = n + margin * 2, rects = '';
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (qr.isDark(r, c)) rects += '<rect x="' + (c + margin) + '" y="' + (r + margin) + '" width="1" height="1"/>';
@@ -89,7 +90,7 @@
       var qr = build(text, ecl);
       if (!qr) { box.innerHTML = ''; lastQR = null; lastSvg = ''; ui.setSel(strip, 'Too much data', 'error', 'The text is too long for a QR code at level ' + ecl + '. Try a lower error correction level.'); ctx.toast('Text too long for a QR code', 'error'); return; }
       lastQR = qr;
-      lastSvg = svgFrom(qr, fgInput.value || '#000000', bgInput.value || '#ffffff', 4);
+      lastSvg = svgFrom(qr, colour(fgInput.value, '#000000'), colour(bgInput.value, '#ffffff'), 4);
       box.innerHTML = lastSvg;
       var n = qr.getModuleCount(), version = (n - 17) / 4;
       ui.setSel(strip, 'QR version ' + version, 'level ' + ecl, n + '×' + n + ' modules · error correction level ' + ecl + ' · ' + text.length + ' characters');
@@ -98,7 +99,7 @@
       if (!lastQR) { ctx.toast('Nothing to save', 'warn'); return; }
       var n = lastQR.getModuleCount(), scale = 8, margin = 4, size = (n + margin * 2) * scale;
       var cv = document.createElement('canvas'); cv.width = cv.height = size; var g = cv.getContext('2d');
-      g.fillStyle = bgInput.value || '#ffffff'; g.fillRect(0, 0, size, size); g.fillStyle = fgInput.value || '#000000';
+      g.fillStyle = colour(bgInput.value, '#ffffff'); g.fillRect(0, 0, size, size); g.fillStyle = colour(fgInput.value, '#000000');
       for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (lastQR.isDark(r, c)) g.fillRect((c + margin) * scale, (r + margin) * scale, scale, scale);
       var a = el('a'); a.href = cv.toDataURL('image/png'); a.download = 'qrcode.png'; a.click();
       ctx.toast('PNG download started', 'success');

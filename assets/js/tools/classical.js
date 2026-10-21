@@ -4,11 +4,10 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes;
   var E = new TextEncoder(), D = new TextDecoder();
   function s2b(s) { return E.encode(s); }
   function b2s(b) { return D.decode(b); }
-  function toHex(b) { var s = ''; for (var i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, '0'); return s; }
-  function hexToBytes(h) { h = h.replace(/[^0-9a-fA-F]/g, ''); var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
   function cleanKey(k) { return (k || '').toUpperCase().replace(/[^A-Z]/g, ''); }
   function shiftLetters(t, fn) { return t.replace(/[a-z]/gi, function (c) { var b = c <= 'Z' ? 65 : 97; return String.fromCharCode(((fn(c.charCodeAt(0) - b) % 26) + 26) % 26 + b); }); }
 
@@ -122,8 +121,6 @@
   var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
   var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
   var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   CK.registerTool('classical', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'caesar';

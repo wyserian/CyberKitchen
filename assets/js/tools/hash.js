@@ -6,16 +6,11 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, randomSecret = CK.randomSecret;
   var ENC = new TextEncoder();
-  function toHex(b) { b = new Uint8Array(b); var s = ''; for (var i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, '0'); return s; }
-  function hexToBytes(h) { h = h.replace(/[^0-9a-fA-F]/g, ''); var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
-  function unb64(s) { s = s.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var bin = atob(s), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
-  function b64(b) { b = new Uint8Array(b); var s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
   function concat(a, b) { var o = new Uint8Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
   function webBytes(algo, b) { return crypto.subtle.digest(algo, b).then(function (h) { return new Uint8Array(h); }); }
   function P(hex) { return Promise.resolve(hexToBytes(hex)); }
-  function b64uEnc(str) { var b = ENC.encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   // hb: bytes -> Promise<Uint8Array>; block = HMAC block size; bytes = digest length
   var ALGOS = [
@@ -55,12 +50,6 @@
   var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
   var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
   var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  function rndBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
-  function bytesToFmt(bytes, fmt) {
-    if (fmt === 'hex') { var h = ''; for (var i = 0; i < bytes.length; i++) h += bytes[i].toString(16).padStart(2, '0'); return h; }
-    if (fmt === 'base64') return b64(bytes);
-    var u = ''; for (var k = 0; k < bytes.length; k++) u += String.fromCharCode(33 + (bytes[k] % 94)); return u;
-  }
 
   CK.registerTool('hash', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'sha256';
@@ -120,7 +109,7 @@
     cfg.appendChild(grid);
     root.appendChild(cfg);
 
-    function genKey() { var a = get(current); keyInput.value = bytesToFmt(rndBytes(a.bytes || 32), keyFmt.value); if (!hmacCb.checked) { hmacCb.checked = true; keyField.style.display = ''; } }
+    function genKey() { var a = get(current); keyInput.value = randomSecret(a.bytes || 32, keyFmt.value); if (!hmacCb.checked) { hmacCb.checked = true; keyField.style.display = ''; } }
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'INPUT', icon: I_FILE, placeholder: 'Text to hash...', primaries: [{ label: 'Hash', cls: 'enc', onClick: doHash }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
@@ -133,24 +122,24 @@
     outP.ta.addEventListener('input', clearVerify);
 
     function select(id) { var a = get(id); if (!a) return; current = id; syncSelects(id); ui.setSel(strip, a.label, a.badge, a.label + ' digest, ' + a.bytes + ' bytes'); }
-    function inputBytes() { var v = inP.ta.value; if (!v) return null; if (inFmt.value === 'hex') return hexToBytes(v); if (inFmt.value === 'base64') { try { return unb64(v); } catch (e) { return null; } } return ENC.encode(v); }
-    function keyBytes() { var v = keyInput.value; if (keyFmt.value === 'hex') return hexToBytes(v); if (keyFmt.value === 'base64') { try { return unb64(v); } catch (e) { return new Uint8Array(); } } return ENC.encode(v); }
+    function inputBytes() { var v = inP.ta.value; if (!v) return null; if (inFmt.value === 'hex') return hexToBytes(v); if (inFmt.value === 'base64') return unb64(v); return ENC.encode(v); }
+    function keyBytes() { var v = keyInput.value; if (keyFmt.value === 'hex') return hexToBytes(v); if (keyFmt.value === 'base64') return unb64(v); return ENC.encode(v); }
     // returns Promise<hex> for the current algorithm (HMAC-aware)
     function digest(bytes) {
       var a = get(current);
-      if (hmacCb.checked && keyInput.value) { if (a.hmac === false) return Promise.reject(new Error(a.label + ' does not support HMAC')); return hmac(a, keyBytes(), bytes).then(toHex); }
+      if (hmacCb.checked && keyInput.value) { if (a.hmac === false) return Promise.reject(new Error(a.label + ' does not support HMAC')); var kb; try { kb = keyBytes(); } catch (e) { return Promise.reject(e); } return hmac(a, kb, bytes).then(toHex); }
       return a.hb(bytes).then(toHex);
     }
 
     function doHash() {
-      var bytes = inputBytes();
+      var bytes; try { bytes = inputBytes(); } catch (e) { ctx.toast(e.message, 'error'); return; }
       if (!bytes) { ctx.toast('Input is empty', 'warn'); return; }
       return digest(bytes).then(function (hx) { outP.ta.value = fmtHex(hx, outFmt.value); clearVerify(); ctx.toast('Hashed (' + get(current).label + (hmacCb.checked && keyInput.value ? ' HMAC' : '') + ')', 'success'); })
         .catch(function (e) { ctx.toast(e.message, 'error'); });
     }
     function doVerify() {
       clearVerify();
-      var bytes = inputBytes();
+      var bytes; try { bytes = inputBytes(); } catch (e) { ctx.toast(e.message, 'error'); return; }
       if (!bytes || !outP.ta.value) { ctx.toast('Both panels need content', 'warn'); return; }
       var want = outP.ta.value.trim();
       digest(bytes).then(function (hx) {

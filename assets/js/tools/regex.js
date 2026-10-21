@@ -6,6 +6,7 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
 
   var FLAGS = [['g', 'global'], ['i', 'ignore case'], ['m', 'multiline'], ['s', 'dotall'], ['u', 'unicode'], ['y', 'sticky']];
   var COMMON = [
@@ -21,8 +22,6 @@
     ['<([a-z]+)(?:[^<]*?)>.*?</\\1>', 'HTML tag pair']
   ];
 
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   var I_REGEX = '<path d="M17 3v6M14.5 4.5l5 3M14.5 7.5l5-3M5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM7 14V4"/>';
   var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
@@ -75,33 +74,46 @@
     function markFlags() { FLAGS.forEach(function (f) { flagBtns[f[0]].classList.toggle('active', flagState[f[0]]); }); }
     function flagStr() { return FLAGS.map(function (f) { return f[0]; }).filter(function (k) { return flagState[k]; }).join(''); }
 
+    // Runs the matching loop off the main thread; done(null) if it takes longer than 1 second
+    var workerUrl = URL.createObjectURL(new Blob(['onmessage=function(e){var d=e.data,re=new RegExp(d.p,d.f),out=[],m,n=0;' +
+      'while((m=re.exec(d.t))!==null){out.push({i:m.index,v:Array.prototype.slice.call(m),g:m.groups||null});' +
+      'if(m.index===re.lastIndex)re.lastIndex++;if(++n>100000)break;}postMessage(out);};'], { type: 'text/javascript' }));
+    var worker = null, timer = null;
+    function stopWorker() { clearTimeout(timer); if (worker) { worker.terminate(); worker = null; } }
+    function findAll(pat, flags, text, done) {
+      stopWorker();
+      worker = new Worker(workerUrl);
+      worker.onmessage = function (e) { stopWorker(); done(e.data); };
+      timer = setTimeout(function () { stopWorker(); done(null); }, 1000);
+      worker.postMessage({ p: pat, f: flags, t: text });
+    }
+
     function run() {
+      stopWorker();
       var pat = patInput.value;
       if (!pat) { outP.ta.value = ''; ui.setSel(strip, 'Regex Tester', 'RegExp', 'Enter a pattern to test.'); return; }
       var flags = flagStr(), re;
       try { re = new RegExp(pat, flags); } catch (e) { outP.ta.value = ''; ui.setSel(strip, 'Invalid pattern', 'error', e.message); CK.flashVerify(false, inP.ta); return; }
       inP.ta.classList.remove('verify-match', 'verify-fail');
-      var text = inP.ta.value, matches = [], m, guard = 0;
-      var reAll = new RegExp(pat, flags.indexOf('g') >= 0 ? flags : flags + 'g');
-      while ((m = reAll.exec(text)) !== null) {
-        matches.push(m);
-        if (m.index === reAll.lastIndex) reAll.lastIndex++;
-        if (++guard > 100000) break;
-      }
-      ui.setSel(strip, '/' + pat + '/' + flags, matches.length + (matches.length === 1 ? ' match' : ' matches'), matches.length ? 'Pattern is valid and matched.' : 'Pattern is valid, no matches.');
-      if (!matches.length) { outP.ta.value = 'No matches.'; return; }
-      var lines = [matches.length + (matches.length === 1 ? ' match' : ' matches') + ':\n'];
-      matches.forEach(function (mm, i) {
-        lines.push('Match ' + (i + 1) + ' at index ' + mm.index + ': ' + JSON.stringify(mm[0]));
-        for (var g = 1; g < mm.length; g++) if (mm[g] !== undefined) lines.push('  Group ' + g + ': ' + JSON.stringify(mm[g]));
-        if (mm.groups) Object.keys(mm.groups).forEach(function (name) { lines.push('  Group "' + name + '": ' + JSON.stringify(mm.groups[name])); });
+      var text = inP.ta.value;
+      // Match in a worker so a catastrophic pattern like (a+)+ cannot freeze the page
+      findAll(pat, flags.indexOf('g') >= 0 ? flags : flags + 'g', text, function (matches) {
+        if (!matches) { outP.ta.value = ''; ui.setSel(strip, '/' + pat + '/' + flags, 'too slow', 'Stopped after 1 second: the pattern backtracks too much on this text (often nested quantifiers like (a+)+).'); CK.flashVerify(false, inP.ta); return; }
+        ui.setSel(strip, '/' + pat + '/' + flags, matches.length + (matches.length === 1 ? ' match' : ' matches'), matches.length ? 'Pattern is valid and matched.' : 'Pattern is valid, no matches.');
+        if (!matches.length) { outP.ta.value = 'No matches.'; return; }
+        var lines = [matches.length + (matches.length === 1 ? ' match' : ' matches') + ':\n'];
+        matches.forEach(function (mm, i) {
+          lines.push('Match ' + (i + 1) + ' at index ' + mm.i + ': ' + JSON.stringify(mm.v[0]));
+          for (var g = 1; g < mm.v.length; g++) if (mm.v[g] !== undefined) lines.push('  Group ' + g + ': ' + JSON.stringify(mm.v[g]));
+          if (mm.g) Object.keys(mm.g).forEach(function (name) { lines.push('  Group "' + name + '": ' + JSON.stringify(mm.g[name])); });
+        });
+        // Highlighted rendering with matches wrapped in guillemets
+        var hi = '', pos = 0;
+        matches.forEach(function (mm) { hi += text.slice(pos, mm.i) + '«' + mm.v[0] + '»'; pos = mm.i + mm.v[0].length; });
+        hi += text.slice(pos);
+        lines.push('\nHighlighted (matches in « »):\n' + hi);
+        outP.ta.value = lines.join('\n');
       });
-      // Highlighted rendering with matches wrapped in guillemets
-      var hi = '', pos = 0;
-      matches.forEach(function (mm) { hi += text.slice(pos, mm.index) + '«' + mm[0] + '»'; pos = mm.index + mm[0].length; });
-      hi += text.slice(pos);
-      lines.push('\nHighlighted (matches in « »):\n' + hi);
-      outP.ta.value = lines.join('\n');
     }
     function doShare() { CK.copy(location.href.split('#')[0] + '#tool=regex&s=' + b64uEnc(JSON.stringify({ p: patInput.value, f: flagStr(), in: inP.ta.value }))); }
     function doReset() { patInput.value = ''; inP.ta.value = ''; outP.ta.value = ''; commonSel.value = ''; flagState = { g: true, i: false, m: false, s: false, u: false, y: false }; markFlags(); inP.ta.classList.remove('verify-match', 'verify-fail'); ctx.toast('Reset complete', 'success'); }

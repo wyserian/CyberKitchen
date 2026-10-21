@@ -7,15 +7,11 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, rndBytes = CK.rndBytes, unb64 = CK.unb64, b64 = CK.b64;
   var ENC = new TextEncoder();
   var C = window.CryptoJS;
 
-  function hexToBytes(h) { h = h.replace(/[^0-9a-fA-F]/g, ''); if (h.length % 2) h = '0' + h; var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
-  function b64ToBytes(s) { s = s.trim().replace(/\s/g, ''); var bin = atob(s), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
-  function toHex(b) { var s = ''; for (var i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, '0'); return s; }
-  function toB64(b) { var s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
-  function inputBytes(v, fmt) { v = v || ''; if (fmt === 'hex') return hexToBytes(v); if (fmt === 'base64') return b64ToBytes(v); return ENC.encode(v); }
-  function rndBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
+  function inputBytes(v, fmt) { v = v || ''; if (fmt === 'hex') return hexToBytes(v); if (fmt === 'base64') return unb64(v); return ENC.encode(v); }
 
   /* ---- crypto-js bridges for scrypt's internal PBKDF2-HMAC-SHA256 ---- */
   function waFromBytes(bytes) { var words = []; for (var i = 0; i < bytes.length; i++) words[i >>> 2] |= (bytes[i] & 0xff) << (24 - (i % 4) * 8); return C.lib.WordArray.create(words, bytes.length); }
@@ -72,8 +68,6 @@
       .then(function (buf) { return new Uint8Array(buf); });
   }
 
-  function b64uEnc(str) { var b = ENC.encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   var I_KEY = '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 0 0 3M14 9l2 2"/>';
   var I_LOCK = '<path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v10H5z"/>';
@@ -126,7 +120,7 @@
     var saltWrap = el('div', { class: 'col' });
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Salt' });
     var saltFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']].map(o), null, 'base64');
-    var saltGen = ui.iconBtn(I_SHUF, 'Random salt', function () { saltInput.value = saltFmt.value === 'hex' ? toHex(rndBytes(16)) : saltFmt.value === 'utf8' ? toHex(rndBytes(16)) : toB64(rndBytes(16)); if (saltFmt.value === 'utf8') saltFmt.value = 'hex'; });
+    var saltGen = ui.iconBtn(I_SHUF, 'Random salt', function () { saltInput.value = saltFmt.value === 'hex' ? toHex(rndBytes(16)) : saltFmt.value === 'utf8' ? toHex(rndBytes(16)) : b64(rndBytes(16)); if (saltFmt.value === 'utf8') saltFmt.value = 'hex'; });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltFmt.style.width = 'auto';
     saltRow.appendChild(saltInput); saltRow.appendChild(saltFmt); saltRow.appendChild(saltGen);
@@ -173,13 +167,13 @@
 
     function saltBytes() { return inputBytes(saltInput.value, saltFmt.value); }
     function dkLen() { return Math.max(1, Math.min(1024, +lenInput.value || 32)); }
-    function fmtOut(b) { return outFmt.value === 'base64' ? toB64(b) : toHex(b); }
+    function fmtOut(b) { return outFmt.value === 'base64' ? b64(b) : toHex(b); }
 
     // returns Promise<Uint8Array>
     function derive() {
       var pw = inP.ta.value;
       if (!pw) return Promise.reject(new Error('Password is empty'));
-      var salt = saltBytes();
+      var salt; try { salt = saltBytes(); } catch (e) { return Promise.reject(e); }
       if (!salt.length) return Promise.reject(new Error('Salt is required'));
       if (algo === 'scrypt') {
         var N = Math.pow(2, +nSel.value), r = Math.max(1, +rInput.value || 8), p = Math.max(1, +pInput.value || 1);
@@ -199,7 +193,7 @@
       var want = outP.ta.value.trim();
       if (!want) { ctx.toast('Put a derived key in the output to verify', 'warn'); return; }
       return derive().then(function (b) {
-        var got = fmtOut(b), match = got.toLowerCase() === want.toLowerCase() || toHex(b) === want.toLowerCase() || toB64(b) === want;
+        var got = fmtOut(b), match = got.toLowerCase() === want.toLowerCase() || toHex(b) === want.toLowerCase() || b64(b) === want;
         CK.flashVerify(match, inP.ta, outP.ta);
         ctx.toast(match ? 'Match: the key derives from this password' : 'No match', match ? 'success' : 'error');
       }).catch(function (e) { ctx.toast(e.message, 'error'); });
@@ -209,7 +203,7 @@
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');
     if (m) { try { var st = JSON.parse(b64uDec(m[1])); algo = st.a || 'pbkdf2'; algoSel.value = algo; iters = st.it || 310000; if (ITERS.indexOf(iters) < 0) iterCustom.value = iters; hashSel.value = st.h || 'SHA-256'; nSel.value = st.N || '14'; rInput.value = st.r || '8'; pInput.value = st.p || '1'; saltFmt.value = st.sf || 'base64'; saltInput.value = st.salt || ''; lenInput.value = st.dk || '32'; outFmt.value = st.of || 'hex'; } catch (e) { } }
-    if (!saltInput.value) saltInput.value = toB64(rndBytes(16));
+    if (!saltInput.value) saltInput.value = b64(rndBytes(16));
     applyAlgo(); markIters(); updateSel();
   });
 })();

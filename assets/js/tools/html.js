@@ -7,6 +7,7 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
 
   // Injected into every rendered page to forward console output and errors to
   // the parent for display. Must never contain a closing script tag.
@@ -47,8 +48,6 @@
       '</body>\n</html>';
   }
 
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   var I_HTML = '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9.5 13l-2 2 2 2M14.5 13l2 2-2 2"/>';
   var I_CODE = '<path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/>';
@@ -171,7 +170,10 @@
     });
 
     function doOpen() {
-      var url = URL.createObjectURL(new Blob([page()], { type: 'text/html' }));
+      // The tab only hosts the same sandboxed frame as the preview, so the code never runs as CyberKitchen
+      var host = '<!doctype html><meta charset="utf-8"><title>Preview</title><style>html,body{margin:0;height:100%}iframe{display:block;border:0;width:100%;height:100%}</style>' +
+        '<iframe sandbox="' + frame.getAttribute('sandbox') + '" srcdoc="' + page().replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></iframe>';
+      var url = URL.createObjectURL(new Blob([host], { type: 'text/html' }));
       window.open(url, '_blank', 'noopener');
       setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
     }

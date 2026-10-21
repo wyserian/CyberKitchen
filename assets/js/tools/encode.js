@@ -4,6 +4,7 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes;
 
   var ENC = new TextEncoder(), DECU = new TextDecoder();
   function s2b(s) { return ENC.encode(s); }
@@ -11,13 +12,6 @@
   function bytesToHex(b) {
     b = b instanceof Uint8Array ? b : new Uint8Array(b);
     var r = ''; for (var i = 0; i < b.length; i++) r += b[i].toString(16).padStart(2, '0'); return r;
-  }
-  function hexToBytes(h) {
-    h = h.replace(/[^0-9a-fA-F]/g, '');
-    if (h.length % 2) throw new Error('Hex length must be even');
-    var b = new Uint8Array(h.length / 2);
-    for (var i = 0; i < b.length; i++) b[i] = parseInt(h.substr(i * 2, 2), 16);
-    return b;
   }
 
   /* Base64 (UTF-8 safe) */
@@ -221,8 +215,6 @@
   }
 
   /* Share-URL state (base64url of JSON) */
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   var I_FILE = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>';
   var I_CODE = '<path d="M7 7 3 12l4 5M17 7l4 5-4 5M14 4l-4 16"/>';

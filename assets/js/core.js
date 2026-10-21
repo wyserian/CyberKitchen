@@ -39,6 +39,35 @@ var CK = (function () {
     return n;
   }
 
+  /* Byte helpers shared by every tool (one copy, so they cannot drift apart) */
+  function toHex(bytes) { bytes = new Uint8Array(bytes); var s = ''; for (var i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0'); return s; }
+  // Hex text -> bytes. Tolerates spaces, : , - separators and 0x / \x prefixes; anything else throws
+  function hexToBytes(h) {
+    h = String(h).replace(/\\x/gi, '').replace(/(^|[\s,:;-])0x/gi, '$1').replace(/[\s,:;-]/g, '');
+    if (!/^[0-9a-fA-F]*$/.test(h) || h.length % 2) throw new Error('Invalid hexadecimal: use pairs of 0-9 / a-f');
+    var a = new Uint8Array(h.length / 2);
+    for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
+    return a;
+  }
+  function b64(bytes) { bytes = new Uint8Array(bytes); var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
+  // Base64 or Base64URL text -> bytes (whitespace ignored); throws on invalid input
+  function unb64(str) { str = String(str).replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin; try { bin = atob(str); } catch (e) { throw new Error('Invalid Base64'); } var a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
+  // UTF-8 text <-> unpadded Base64URL, for #tool=...&s= share links
+  function b64uEnc(str) { return b64(new TextEncoder().encode(str)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function b64uDec(str) { return new TextDecoder().decode(unb64(str)); }
+  function pem(label, buf) { return '-----BEGIN ' + label + '-----\n' + b64(buf).replace(/(.{64})/g, '$1\n').trim() + '\n-----END ' + label + '-----'; }
+  function unpem(str) { return unb64(String(str).replace(/-----[^-]+-----/g, '')); }
+  function rndBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
+  // n random bytes as hex / Base64, or n printable ASCII characters. Bytes >= 188 are
+  // rejected so each of the 94 characters is equally likely (188 = 2 * 94).
+  function randomSecret(n, fmt) {
+    if (fmt === 'hex') return toHex(rndBytes(n));
+    if (fmt === 'base64') return b64(rndBytes(n));
+    var s = '';
+    while (s.length < n) { var b = rndBytes(Math.min(n, 65536)); for (var i = 0; i < b.length && s.length < n; i++) if (b[i] < 188) s += String.fromCharCode(33 + b[i] % 94); }
+    return s;
+  }
+
   /* Theme */
   var theme = {
     load: function () {
@@ -202,6 +231,7 @@ var CK = (function () {
     }
   }
 
+  // Shown only when a tool's script failed to load (e.g. a library did not download)
   function _renderPlaceholder(root, tool) {
     var head = el('div', { class: 'tool-head' });
     head.innerHTML = '<h1>' + tool.label + '</h1>';
@@ -209,18 +239,8 @@ var CK = (function () {
     var ph = el('div', { class: 'ph' });
     ph.innerHTML =
       '<div class="ph-ico">' + iconSvg(tool.icon, 26) + '</div>' +
-      '<div class="ph-title">' + tool.label + '</div>' +
-      '<div class="ph-note">This tool is wired into the dashboard and will be implemented in an upcoming phase. ' +
-      'The shell, theme, routing, and shared actions below are already live.</div>';
-    var demoRow = el('div', { class: 'tb', style: 'margin-top:4px' });
-    var bCopy = el('button', { class: 'btn mini' }, 'Copy demo');
-    var bToast = el('button', { class: 'btn mini' }, 'Toast');
-    var bDl = el('button', { class: 'btn mini' }, 'Download');
-    bCopy.addEventListener('click', function () { copy('Hello from ' + tool.label + ' (CyberKitchen)'); });
-    bToast.addEventListener('click', function () { toast(tool.label + ' ready', 'success'); });
-    bDl.addEventListener('click', function () { download(tool.label + ' placeholder', tool.id + '.txt'); });
-    demoRow.appendChild(bCopy); demoRow.appendChild(bToast); demoRow.appendChild(bDl);
-    ph.appendChild(demoRow);
+      '<div class="ph-title">' + tool.label + ' failed to load</div>' +
+      '<div class="ph-note">Reload the page. If it keeps happening, clear this site\'s data so the offline copy is fetched again.</div>';
     panel.appendChild(ph);
     root.appendChild(head);
     root.appendChild(panel);
@@ -428,6 +448,8 @@ var CK = (function () {
     navigate: navigate, getTool: getTool,
     theme: theme, toast: toast, copy: copy, paste: paste, download: download,
     store: store, el: el, iconSvg: iconSvg, $: $, flashVerify: flashVerify,
-    pwStrength: pwStrength, attachStrength: attachStrength
+    pwStrength: pwStrength, attachStrength: attachStrength,
+    toHex: toHex, hexToBytes: hexToBytes, b64: b64, unb64: unb64, b64uEnc: b64uEnc, b64uDec: b64uDec,
+    pem: pem, unpem: unpem, rndBytes: rndBytes, randomSecret: randomSecret
   };
 })();

@@ -7,6 +7,7 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
   var STD = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var B32 = '0123456789ABCDEFGHIJKLMNOPQRSTUV';
   var B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -62,8 +63,6 @@
   function toAlpha(n, alphabet) { var base = BigInt(alphabet.length); if (n === 0n) return alphabet[0]; var neg = n < 0n, x = neg ? -n : n, s = ''; while (x > 0n) { s = alphabet[Number(x % base)] + s; x = x / base; } return (neg ? '-' : '') + s; }
   function ieee(bits, val) { var dv = new DataView(new ArrayBuffer(8)); if (bits === 32) { dv.setFloat32(0, val); return dv.getUint32(0).toString(16).padStart(8, '0'); } dv.setFloat64(0, val); return dv.getUint32(0).toString(16).padStart(8, '0') + dv.getUint32(4).toString(16).padStart(8, '0'); }
   function eng(val) { if (!isFinite(val)) return String(val); if (val === 0) return '0e+0'; var e = Math.floor(Math.log10(Math.abs(val))), en = Math.floor(e / 3) * 3, m = val / Math.pow(10, en); return (+m.toPrecision(7)) + 'e' + (en >= 0 ? '+' : '') + en; }
-  function b64uEnc(str) { var b = new TextEncoder().encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
   // Best-effort input-type guess. Prefixes and spacing are reliable; a bare digit
   // string is reported as the smallest base whose alphabet fits it. Signed integer
   // conventions (two's/one's/sign-magnitude/excess/Gray) look identical to binary,

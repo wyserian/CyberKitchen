@@ -203,11 +203,6 @@ main{padding:8px; overflow-x:hidden; overflow-y:auto; display:flex; flex-directi
 .io-p{padding:11px 12px; gap:9px; position:relative; min-height:180px;}
 .fill{flex:1;}
 .tb{display:flex; gap:4px; align-items:center;}
-.btn.mini{
-  padding:3px 8px; font-size:10.5px; font-weight:600; border-radius:6px; background:var(--inset2);
-  border:none; color:var(--muted); cursor:pointer; transition:.12s;
-}
-.btn.mini:hover{color:var(--acc); background:rgba(59,130,246,.14);}
 .ta{
   flex:1; background:var(--inset); border:none; border-radius:9px; padding:12px;
   font-family:'SF Mono','Fira Code','Consolas',monospace; font-size:12.5px; line-height:1.7; color:var(--txt);

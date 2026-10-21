@@ -6,10 +6,10 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes, rndBytes = CK.rndBytes;
   var ENC = new TextEncoder();
   var B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-  function hexToBytes(h) { h = h.replace(/[^0-9a-fA-F]/g, ''); if (h.length % 2) h = '0' + h; var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
   function base32ToBytes(s) {
     s = s.toUpperCase().replace(/=+$/, '').replace(/\s/g, '');
     var out = [], buf = 0, bits = 0;
@@ -40,8 +40,6 @@
       });
   }
 
-  function b64uEnc(str) { var b = ENC.encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
 
   var I_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
   var I_KEY = '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 0 0 3M14 9l2 2"/>';
@@ -49,7 +47,6 @@
   var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
   var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
 
-  function rndBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
 
   CK.registerTool('totp', function (root, ctx) {
     var ui = CK.ui, el = CK.el, mode = 'totp';

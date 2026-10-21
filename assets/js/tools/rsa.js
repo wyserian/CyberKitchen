@@ -6,15 +6,8 @@
 */
 (function () {
   'use strict';
+  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
   var ENC = new TextEncoder(), DEC = new TextDecoder();
-  function b64(bytes) { var s = ''; bytes = new Uint8Array(bytes); for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
-  function unb64(str) { var bin = atob(str.trim().replace(/\s/g, '')); var a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
-  function toHex(bytes) { bytes = new Uint8Array(bytes); var s = ''; for (var i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0'); return s; }
-  function hexToBytes(h) { h = h.replace(/[^0-9a-fA-F]/g, ''); var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
-  function pem(label, buf) { return '-----BEGIN ' + label + '-----\n' + b64(buf).replace(/(.{64})/g, '$1\n').trim() + '\n-----END ' + label + '-----'; }
-  function unpem(str) { return unb64(str.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')).buffer; }
-  function b64uEnc(str) { var b = ENC.encode(str), s = ''; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uDec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return DEC.decode(a); }
 
   function detectFmt(s) {
     var c = s.trim(), clean = c.replace(/\s/g, '');
@@ -104,11 +97,14 @@
         .then(function (k) { pub.ta.value = pem('PUBLIC KEY', k[0]); priv.ta.value = pem('PRIVATE KEY', k[1]); ctx.toast('Keypair generated', 'success'); })
         .catch(function (e) { ctx.toast('Key generation failed: ' + e.message, 'error'); });
     }
+    // Malformed PEM rejects (caught by callers) instead of throwing synchronously
+    function importPriv() { return Promise.resolve().then(function () { return crypto.subtle.importKey('pkcs8', unpem(priv.ta.value), alg(), false, ['decrypt']); }); }
     function doEncrypt() {
       if (!inP.ta.value) { ctx.toast('Input is empty', 'warn'); return; }
       if (!pub.ta.value) { ctx.toast('Public key required', 'warn'); return; }
-      return crypto.subtle.importKey('spki', unpem(pub.ta.value), alg(), false, ['encrypt'])
-        .then(function (key) { return crypto.subtle.encrypt(alg(), key, ptBytes()); })
+      var pt, spki; try { pt = ptBytes(); spki = unpem(pub.ta.value); } catch (e) { ctx.toast(e.message, 'error'); return; }
+      return crypto.subtle.importKey('spki', spki, alg(), false, ['encrypt'])
+        .then(function (key) { return crypto.subtle.encrypt(alg(), key, pt); })
         .then(function (ct) { outP.ta.value = ctFmt.value === 'hex' ? toHex(ct) : b64(ct); clearVerify(); ctx.toast('Encrypted', 'success'); })
         .catch(function (e) {
           var hl = { 'SHA-1': 20, 'SHA-256': 32, 'SHA-384': 48, 'SHA-512': 64 }[hash], max = bits / 8 - 2 * hl - 2;
@@ -120,7 +116,7 @@
       if (!inP.ta.value) { ctx.toast('Input is empty', 'warn'); return; }
       if (!priv.ta.value) { ctx.toast('Private key required', 'warn'); return; }
       var bytes; try { bytes = ctBytes(inP.ta.value); } catch (e) { ctx.toast('Invalid ciphertext', 'error'); return; }
-      return crypto.subtle.importKey('pkcs8', unpem(priv.ta.value), alg(), false, ['decrypt'])
+      return importPriv()
         .then(function (key) { return crypto.subtle.decrypt(alg(), key, bytes); })
         .then(function (pt) { outP.ta.value = fromPt(pt); clearVerify(); ctx.toast('Decrypted', 'success'); })
         .catch(function () { ctx.toast('Decryption failed: wrong key, hash, or ciphertext', 'error'); });
@@ -130,7 +126,7 @@
       if (!priv.ta.value) { ctx.toast('Private key required to verify', 'warn'); return; }
       var a = inP.ta.value, b = outP.ta.value;
       if (!a || !b) { ctx.toast('Both panels need content', 'warn'); return; }
-      crypto.subtle.importKey('pkcs8', unpem(priv.ta.value), alg(), false, ['decrypt']).then(function (key) {
+      importPriv().then(function (key) {
         function tryDec(src) { var bytes; try { bytes = ctBytes(src); } catch (e) { return Promise.resolve(null); } return crypto.subtle.decrypt(alg(), key, bytes).then(function (pt) { return fromPt(pt); }).catch(function () { return null; }); }
         return Promise.all([tryDec(a), tryDec(b)]).then(function (r) {
           var match = (r[0] !== null && r[0] === b) || (r[1] !== null && r[1] === a);
