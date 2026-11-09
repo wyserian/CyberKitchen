@@ -15,10 +15,12 @@
       --bg:#f6f8fb; --surf:#ffffff; --inset:#f1f5f9; --inset2:#e8edf3;
       --txt:#0f172a; --muted:#64748b; --acc:#3b82f6;
       --bdr:#e5eaf0; --cbdr:#c3cede; --shd:rgba(15,23,42,.06);
+      color-scheme:light;
     }
     :root[data-theme="dark"]{
       --bg:#0d1117; --surf:#161b22; --inset:#1b212a; --inset2:#252c37;
       --txt:#e6edf3; --muted:#8b949e; --bdr:#2a313c; --cbdr:#3a424f; --shd:rgba(0,0,0,.35);
+      color-scheme:dark;
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
     body{
@@ -29,7 +31,7 @@
     svg{display:block;}
     .theme-switching *, .theme-switching *::before, .theme-switching *::after{transition:none !important;}
     header{
-      display:flex; align-items:center; gap:7px; padding:0 12px; height:38px;
+      display:flex; align-items:center; gap:7px; padding:0 12px; height:40px;
       background:var(--surf); box-shadow:0 1px 3px var(--shd); position:relative; z-index:1;
     }
     .brand{
@@ -41,7 +43,7 @@
     .brand svg{stroke:#8b5cf6;}
     .spacer{flex:1;}
     .icon-btn{
-      width:28px; height:28px; border-radius:7px; background:var(--inset2); border:none;
+      width:28px; height:28px; border-radius:50%; background:none; border:none;
       display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; transition:.15s;
     }
     .icon-btn:hover{color:var(--acc); background:rgba(59,130,246,.14);}
