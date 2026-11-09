@@ -7,7 +7,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
   function escText(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function safeUrl(u) { u = u.replace(/&amp;/g, '&').trim(); if (/^(javascript|data|vbscript):/i.test(u)) return '#'; return u.replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E').replace(/&/g, '&amp;'); }
@@ -83,6 +83,8 @@
   var IC_DL = '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>';
   var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
   var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_NEW = '<path d="M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>';
+  var VARS = ['--bg', '--surf', '--inset', '--inset2', '--txt', '--muted', '--bdr', '--cbdr', '--acc'];
 
   CK.registerTool('markdown', function (root, ctx) {
     var ui = CK.ui, el = CK.el, iconSvg = CK.iconSvg;
@@ -107,6 +109,7 @@
     var hdr = el('div', { class: 'panel-hdr', html: iconSvg(I_EYE, 12) + ' ' });
     hdr.appendChild(document.createTextNode('PREVIEW'));
     var fill = el('span', { class: 'fill' }), tb = el('span', { class: 'tb' });
+    tb.appendChild(ui.iconBtn(I_NEW, 'Open in new tab', doOpen));
     tb.appendChild(ui.iconBtn(IC_COPY, 'Copy HTML', function () { if (lastHtml) CK.copy(lastHtml); else ctx.toast('Nothing to copy', 'warn'); }));
     tb.appendChild(ui.iconBtn(IC_DL, 'Download HTML', function () { if (lastHtml) CK.download(fullHtml(), 'readme.html', 'text/html'); else ctx.toast('Nothing to save', 'warn'); }));
     hdr.appendChild(fill); hdr.appendChild(tb);
@@ -118,7 +121,25 @@
     var lastHtml = '';
     function fullHtml() { return '<!doctype html>\n<html>\n<head><meta charset="utf-8"><title>README</title></head>\n<body>\n' + lastHtml + '\n</body>\n</html>'; }
     function run() { lastHtml = render(inP.ta.value); preview.innerHTML = lastHtml; }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=markdown&s=' + b64uEnc(JSON.stringify({ md: inP.ta.value }))); }
+    // Full-screen page (no box, edge to edge) styled like the preview: the current theme's colours plus the app's own
+    // .md-preview rules. The CSP blocks every script, on top of the renderer's HTML escaping.
+    function doOpen() {
+      if (!lastHtml) { ctx.toast('Nothing to show', 'warn'); return; }
+      var cs = getComputedStyle(document.documentElement);
+      var css = ':root{' + VARS.map(function (n) { return n + ':' + cs.getPropertyValue(n).trim(); }).join(';') + ';color-scheme:' + cs.colorScheme + '}';
+      [].forEach.call(document.styleSheets, function (sh) {
+        try { [].forEach.call(sh.cssRules, function (r) { if (r.selectorText && r.selectorText.indexOf('.md-preview') >= 0) css += r.cssText; }); } catch (e) { }
+      });
+      css += 'body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
+        '.md-preview{background:none;border-radius:0;margin:0;padding:24px 32px;min-height:100vh;box-sizing:border-box;font-size:15px;}';
+      var page = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src * data:">' +
+        '<title>Markdown preview</title><style>' + css + '</style></head><body><div class="md-preview">' + lastHtml + '</div></body></html>';
+      var url = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
+      window.open(url, '_blank', 'noopener');
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    }
+    function doShare() { CK.share('markdown', { md: inP.ta.value }); }
     function doReset() { inP.ta.value = ''; run(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

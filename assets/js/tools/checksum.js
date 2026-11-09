@@ -1,9 +1,9 @@
 /*
    checksum.js - File Checksum
-   Drop or choose a local file and compute CRC32, MD5, SHA-1, SHA-2 and SHA-3
-   digests. Verify a published checksum (bare hash, "hash  filename" or
-   "ALGO (file) = hash"); the algorithm is found from the checksum length.
-   The file is read in the browser and never uploaded.
+   Drop or choose a local file and compute its checksum with one selected
+   algorithm (CRC32, MD5, SHA-1, SHA-2, SHA-3). Verify compares the output
+   panel (bare hash, "hash  filename" or "ALGO (file) = hash") with the file's
+   checksum for that algorithm. The file is read in the browser and never uploaded.
 */
 (function () {
   'use strict';
@@ -22,7 +22,6 @@
     { id: 'sha3-256', label: 'SHA3-256', bytes: 32, hx: lib(function (b) { return HashLib.sha3(256, b); }) },
     { id: 'sha3-512', label: 'SHA3-512', bytes: 64, hx: lib(function (b) { return HashLib.sha3(512, b); }) }
   ];
-  var DEFAULTS = ['md5', 'sha1', 'sha256', 'sha512'];
   function get(id) { for (var i = 0; i < ALGOS.length; i++) if (ALGOS[i].id === id) return ALGOS[i]; return null; }
 
   function fmtSize(n) {
@@ -66,17 +65,9 @@
     var grid = el('div', { class: 'cfg-grid wide-left' });
     var colL = el('div', { class: 'col' });
     var colR = el('div', { class: 'col' });
-    // Algorithms: toggle buttons, several can be on, all on one wrapping line
-    var chosen = DEFAULTS.slice(), algoBtns = {};
-    var algoRow = el('div', { style: 'display:flex; flex-wrap:wrap; gap:5px; align-items:center;' });
-    ALGOS.forEach(function (a) {
-      var b = el('button', { class: 'eb', title: a.label + ' (' + a.bytes + ' bytes)' }); b.textContent = a.label;
-      b.addEventListener('click', function () { toggleAlgo(a.id); });
-      algoBtns[a.id] = b; algoRow.appendChild(b);
-    });
-    var expInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Paste a published checksum, then Verify (Enter)' });
-    colL.appendChild(ui.field('Algorithms', algoRow)); colL.appendChild(ui.field('Expected checksum', expInput));
-    var outFmt = ui.select([['hex', 'Hexadecimal (lower)'], ['HEX', 'Hexadecimal (UPPER)'], ['base64', 'Base64']].map(o), render, 'hex');
+    var algoSel = ui.select(ALGOS.map(function (a) { return { value: a.id, label: a.label }; }), onAlgo, 'sha256');
+    var outFmt = ui.select([['hex', 'Hexadecimal (lower)'], ['HEX', 'Hexadecimal (UPPER)'], ['base64', 'Base64']].map(o), show, 'hex');
+    colL.appendChild(ui.field('Algorithm', algoSel));
     colR.appendChild(ui.field('Output format', outFmt));
     grid.appendChild(colL); grid.appendChild(colR);
     cfg.appendChild(grid);
@@ -94,12 +85,14 @@
     hdr.appendChild(fill); hdr.appendChild(tb);
     var drop = el('div', { class: 'ta cs-drop', tabindex: '0', role: 'button', 'aria-label': 'Choose a file to hash' });
     inP.appendChild(hdr); inP.appendChild(drop); inP.appendChild(picker);
-    var outP = ui.textPanel({ title: 'CHECKSUMS', icon: I_HASH, placeholder: 'Checksums appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'checksums.txt' });
+    var outP = ui.textPanel({ title: 'CHECKSUM', icon: I_HASH, placeholder: 'Checksum appears here. Or paste the expected checksum and press Verify...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'checksum.txt' });
     io.appendChild(inP); io.appendChild(outP.panel);
     root.appendChild(io);
 
-    var file = null, bytes = null, digests = {}, busy = 0;
+    // shown: the last checksum this tool wrote; anything else in the output is the user's expected value
+    var file = null, bytes = null, digests = {}, busy = 0, shown = '';
 
+    function algo() { return get(algoSel.value); }
     function clearVerify() { drop.classList.remove('verify-match', 'verify-fail'); outP.ta.classList.remove('verify-match', 'verify-fail'); }
     function showDrop(state) {
       drop.innerHTML = '';
@@ -115,24 +108,16 @@
       }
       clrBtn.disabled = !file;
     }
-    function updateSel() {
-      var names = chosen.map(function (id) { return get(id).label; });
-      ui.setSel(strip, 'File Checksum', chosen.length + (chosen.length === 1 ? ' algorithm' : ' algorithms'),
-        (names.length ? names.join(', ') : 'No algorithm selected') + ' of a local file.');
-    }
-    function markAlgos() { ALGOS.forEach(function (a) { algoBtns[a.id].classList.toggle('active', chosen.indexOf(a.id) >= 0); }); }
-    function toggleAlgo(id) {
-      var i = chosen.indexOf(id);
-      if (i >= 0) chosen.splice(i, 1); else chosen.push(id);
-      chosen.sort(function (x, y) { return ALGOS.indexOf(get(x)) - ALGOS.indexOf(get(y)); });
-      markAlgos(); updateSel();
-      if (bytes) compute(chosen).then(render);
-    }
+    function updateSel() { var a = algo(); ui.setSel(strip, a.label, a.bytes + ' bytes', a.label + ' checksum of a local file.'); }
 
     function fmt(hx) { return outFmt.value === 'HEX' ? hx.toUpperCase() : outFmt.value === 'base64' ? b64(hexToBytes(hx)) : hx; }
-    function render() {
-      if (!bytes) { outP.ta.value = ''; return; }
-      outP.ta.value = chosen.filter(function (id) { return digests[id]; }).map(function (id) { return (get(id).label + '         ').slice(0, 10) + fmt(digests[id]); }).join('\n');
+    // Write the checksum, unless the output holds the user's expected value: then verify against it
+    function show() {
+      var hx = bytes && digests[algo().id];
+      if (!hx) return;
+      var cur = outP.ta.value.trim();
+      if (cur && cur !== shown) { doVerify(); return; }
+      shown = fmt(hx); outP.ta.value = shown; clearVerify();
     }
     // Digest the current file with each algorithm not yet cached
     function compute(ids) {
@@ -144,21 +129,22 @@
         });
       }, Promise.resolve());
     }
+    function onAlgo() { updateSel(); if (bytes) compute([algo().id]).then(show); }
 
     function load(f) {
       if (!f) return;
       busy++; var gen = busy;
-      file = f; bytes = null; digests = {}; outP.ta.value = ''; clearVerify(); showDrop('busy');
+      file = f; bytes = null; digests = {}; clearVerify(); showDrop('busy');
       var t0 = Date.now();
       f.arrayBuffer().then(function (buf) {
         if (gen !== busy) return;
         bytes = new Uint8Array(buf);
         // Let the "Hashing..." state paint before the synchronous hashes run
-        return new Promise(function (r) { setTimeout(r, 30); }).then(function () { return compute(chosen); }).then(function () {
+        return new Promise(function (r) { setTimeout(r, 30); }).then(function () { return compute([algo().id]); }).then(function () {
           if (gen !== busy) return;
-          render(); showDrop();
+          showDrop();
           ctx.toast('Hashed ' + f.name + ' in ' + ((Date.now() - t0) / 1000).toFixed(2) + ' s', 'success');
-          if (expInput.value.trim()) doVerify();
+          show();
         });
       }).catch(function () {
         if (gen !== busy) return;
@@ -166,38 +152,42 @@
         ctx.toast('Could not read the file (it may be too large for the browser)', 'error');
       });
     }
-    function clearFile() { busy++; file = null; bytes = null; digests = {}; picker.value = ''; outP.ta.value = ''; clearVerify(); showDrop(); }
+    function clearFile() {
+      busy++; file = null; bytes = null; digests = {}; picker.value = '';
+      if (outP.ta.value.trim() === shown) outP.ta.value = '';
+      shown = ''; clearVerify(); showDrop();
+    }
 
     function doVerify() {
       clearVerify();
-      var raw = expInput.value.trim();
-      if (!raw) { ctx.toast('Paste the expected checksum first', 'warn'); return; }
+      var raw = outP.ta.value.trim(), a = algo();
       if (!bytes) { ctx.toast('Choose a file first', 'warn'); return; }
+      if (!raw) { ctx.toast('Paste the expected checksum in the output panel', 'warn'); return; }
       var want = parseExpected(raw);
       if (!want) { CK.flashVerify(false, drop, outP.ta); ctx.toast('That is not a hex or Base64 checksum', 'error'); return; }
-      // Check every algorithm with this digest length, selected or not
-      var cands = ALGOS.filter(function (a) { return a.bytes * 2 === want.length; }).map(function (a) { return a.id; });
-      if (!cands.length) { CK.flashVerify(false, drop, outP.ta); ctx.toast('No match: ' + want.length / 2 + ' bytes is not a supported checksum length', 'error'); return; }
-      compute(cands).then(function () {
-        var hit = cands.filter(function (id) { return digests[id] === want; })[0];
-        CK.flashVerify(!!hit, drop, outP.ta);
-        ctx.toast(hit ? 'Match: ' + get(hit).label + ' of ' + file.name : 'No match (checked ' + cands.map(function (id) { return get(id).label; }).join(', ') + ')', hit ? 'success' : 'error');
+      compute([a.id]).then(function () {
+        var match = digests[a.id] === want;
+        CK.flashVerify(match, drop, outP.ta);
+        if (match) { ctx.toast('Match: ' + a.label + ' of ' + file.name, 'success'); return; }
+        // Wrong length for the selected algorithm: name the ones it does fit
+        var fits = ALGOS.filter(function (x) { return x.bytes * 2 === want.length; }).map(function (x) { return x.label; });
+        ctx.toast(want.length === a.bytes * 2 ? 'No match (' + a.label + ')' :
+          'No match: ' + a.label + ' is ' + a.bytes + ' bytes, this is ' + want.length / 2 + ' bytes' + (fits.length ? ' (that length is ' + fits.join(' or ') + ')' : ''), 'error');
       });
     }
     function doReset() {
-      clearFile(); expInput.value = ''; chosen = DEFAULTS.slice(); outFmt.value = 'hex';
-      markAlgos(); updateSel(); ctx.toast('Reset complete', 'success');
+      clearFile(); outP.ta.value = ''; algoSel.value = 'sha256'; outFmt.value = 'hex';
+      updateSel(); ctx.toast('Reset complete', 'success');
     }
 
+    outP.ta.addEventListener('input', clearVerify);
     picker.addEventListener('change', function () { load(picker.files[0]); });
     drop.addEventListener('click', function () { picker.click(); });
     drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); picker.click(); } });
     drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('drag'); });
     drop.addEventListener('dragleave', function () { drop.classList.remove('drag'); });
     drop.addEventListener('drop', function (e) { e.preventDefault(); drop.classList.remove('drag'); if (e.dataTransfer && e.dataTransfer.files[0]) load(e.dataTransfer.files[0]); });
-    expInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doVerify(); });
-    expInput.addEventListener('input', clearVerify);
 
-    markAlgos(); updateSel(); showDrop();
+    updateSel(); showDrop();
   });
 })();
