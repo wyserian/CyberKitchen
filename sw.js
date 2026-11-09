@@ -5,7 +5,7 @@
    navigations fall back to the app shell when offline.
    Relative paths keep it working under any base path (e.g. /CyberKitchen/).
 */
-var CACHE = 'cyberkitchen-v14';
+var CACHE = 'cyberkitchen-v15';
 var ASSETS = [
   './',
   'index.html',
@@ -47,6 +47,7 @@ var ASSETS = [
   'assets/js/tools/color.js',
   'assets/js/tools/markdown.js',
   'assets/js/tools/html.js',
+  'assets/js/tools/text.js',
   'assets/js/tools/qr.js'
 ];
 

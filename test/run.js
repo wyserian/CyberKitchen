@@ -63,7 +63,7 @@ var toasts = [];
 CK.toast = function (m, t) { toasts.push((t || 'success') + ': ' + m); };
 var mounts = {};
 CK.registerTool = function (id, fn) { mounts[id] = fn; };
-['hash', 'checksum', 'jwt', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
+['hash', 'checksum', 'jwt', 'text', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
 
 function all(n, out) { out = out || []; out.push(n); n.children.forEach(function (c) { all(c, out); }); return out; }
 function mount(id) {
@@ -196,6 +196,55 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   ok(shared().k === 'mykey', 'share: "Include it" copies the link with the secret');
   clip = null; CK.share('cidr', { in: '10.0.0.0/8' }); await sleep(20);
   ok(shared().in === '10.0.0.0/8', 'share: links without secrets copy as they are');
+
+  /* Text Cleaner: Clean */
+  var X = mount('text'), xin = X.tas[0], xout = X.tas[1], ch = String.fromCharCode;
+  var swOf = function (r, label) { return all(r).filter(function (n) { return n.className === 'switch' && n.children[2] && n.children[2].textContent === label; })[0].children[0]; };
+  var tick = function (label, on) { var cb = swOf(X.root, label); cb.checked = on; cb.fire('change'); };
+  tick('Remove blank lines', true); tick('Remove duplicate lines', true); tick('Strip HTML tags', true); tick('Plain ASCII punctuation', true);
+  set(xin, '  Hello' + ch(0x200B) + '   world  \n\nHello world\n' + ch(0x202E) + 'doc\n<b>Bold</b> &amp; ' + ch(0x201C) + 'quoted' + ch(0x201D) + ' ' + ch(0x2014) + ' done' + ch(0x2026) + '\n');
+  ok(xout.value === 'Hello world\ndoc\nBold & "quoted" - done...', 'text clean: invisible chars, spaces, blank + duplicate lines, HTML, punctuation');
+  ok(/1 duplicate removed, 2 invisible characters removed/.test(X.root.querySelector('.sel-desc').textContent), 'text clean: reports duplicates and invisible characters removed');
+  set(X.field('Case'), 'snake'); set(xin, 'Hello World fooBar');
+  ok(xout.value === 'hello_world_foo_bar', 'text clean: snake_case splits words and camelCase humps');
+  set(X.field('Case'), 'camel'); set(xin, 'hello world-api');
+  ok(xout.value === 'helloWorldApi', 'text clean: camelCase');
+  set(X.field('Case'), 'none');
+
+  /* Text Cleaner: Extract */
+  var h64 = 'a'.repeat(10) + '0123456789abcdef'.repeat(3) + 'abcdef', h32 = '0123456789abcdef'.repeat(2);
+  var log = 'user a.b@example.com from 10.0.0.5 (see https://example.com/path?q=1). Version 1.2.3.4.5 at 10:30:00 mac 00:1a:2b:3c:4d:5e ' +
+    'v6 2001:db8::1 and fe80::1ff:fe23:4567:890a id 123e4567-e89b-12d3-a456-426614174000 tok eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abc ' +
+    'sha ' + h64 + ' md5 ' + h32 + ' again 10.0.0.5 msg aGVsbG8gd29ybGQ= word Authentication2 hex 0x48656c6c6f20776f726c64 ts 1700000000' +
+    ' path random/maxObserveMousemove sp 48 69 20 74 68 65 72 65 esc \\x48\\x69\\x21\\x21 col 4f:4b:21:21';
+  set(X.field('Mode'), 'extract'); set(xin, log);
+  var find = function (t) { set(X.field('Find'), t); return xout.value; };
+  ok(find('emails') === 'a.b@example.com', 'text extract: email');
+  ok(find('urls') === 'https://example.com/path?q=1', 'text extract: URL without trailing ").');
+  ok(find('domains') === 'example.com', 'text extract: domains from URLs and emails, de-duplicated');
+  ok(find('ipv4') === '10.0.0.5', 'text extract: IPv4 (unique), version string 1.2.3.4.5 ignored');
+  ok(find('ipv6') === '2001:db8::1\nfe80::1ff:fe23:4567:890a', 'text extract: IPv6, not a time or a MAC address');
+  ok(find('uuids') === '123e4567-e89b-12d3-a456-426614174000' && /^eyJ/.test(find('jwts')), 'text extract: UUID and JWT');
+  ok(find('hashes') === 'SHA-256  ' + h64 + '\nMD5  ' + h32, 'text extract: hashes labelled by length');
+  ok(find('base64') === 'aGVsbG8gd29ybGQ=  ->  hello world', 'text extract: Base64 decoded; JWT, URL, hashes and short words skipped');
+  ok(find('hex') === '0x48656c6c6f20776f726c64  ->  Hello world\n48 69 20 74 68 65 72 65  ->  Hi there\n\\x48\\x69\\x21\\x21  ->  Hi!!\n4f:4b:21:21  ->  OK!!',
+    'text extract: hex plain, spaced, \\x and colon, decoded; hashes, UUID, MAC, IPv6, time and plain numbers skipped');
+  tick('Show counts', true);
+  ok(find('ipv4') === '   2x  10.0.0.5', 'text extract: counts');
+  tick('Show counts', false);
+
+  /* Text Cleaner: Redact */
+  var secretText = 'mail bob@corp.com from 192.168.1.10 key AKIAIOSFODNN7EXAMPLE gh ghp_' + 'A1b2C3d4E5'.repeat(4) +
+    ' card 4111 1111 1111 1111 not 1234 5678 9012 3456 auth: Bearer abcdefghijklmnop1234 url https://admin:hunter2@host.example/x\n' +
+    '-----BEGIN PRIVATE KEY-----\nMIIabc\n-----END PRIVATE KEY-----';
+  set(X.field('Mode'), 'redact'); set(xin, secretText);
+  var red = xout.value;
+  ok(['[EMAIL]', '[IP]', '[AWS KEY]', '[GITHUB TOKEN]', '[CARD]', 'Bearer [TOKEN]', 'admin:[PASSWORD]@host', '[PRIVATE KEY]'].every(function (t) { return red.indexOf(t) >= 0; }) &&
+    !/bob@|192\.168|AKIA|ghp_|4111|hunter2|MIIabc/.test(red), 'text redact: every category hidden');
+  ok(red.indexOf('1234 5678 9012 3456') >= 0, 'text redact: a number failing the Luhn check is kept');
+  ok(/Hid .*1 card number.*1 email.*1 IP address/.test(X.root.querySelector('.sel-desc').textContent), 'text redact: summary of what was hidden');
+  clip = null; X.byTitle('Share').fire('click'); await sleep(20);
+  ok(clip && !('in' in shared()) && shared().m === 'redact', 'text share: the text itself is left out by default');
 
   /* Markdown: alt text cannot break out of its attribute */
   var M = mount('markdown');
