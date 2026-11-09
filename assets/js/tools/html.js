@@ -1,13 +1,13 @@
 /*
    html.js - HTML Viewer
-   Edit HTML, CSS and JavaScript and see the page rendered live in a sandboxed
-   iframe, with captured console output. The frame gets allow-scripts but not
-   allow-same-origin, so rendered code cannot reach CyberKitchen or its storage.
-   Pure JS, no dependencies.
+   Edit HTML, CSS and JavaScript and see the page rendered live, with captured
+   console output. Rendering goes through assets/preview.html, which runs the code
+   in a frame sandboxed without allow-same-origin (so it cannot reach CyberKitchen
+   or its storage) and outside the app's Content Security Policy. Pure JS.
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
   // Injected into every rendered page to forward console output and errors to
   // the parent for display. Must never contain a closing script tag.
@@ -123,7 +123,11 @@
     tb.appendChild(ui.iconBtn(I_NEW, 'Open in new tab', doOpen));
     tb.appendChild(ui.iconBtn(IC_DL, 'Download page', function () { CK.download(page(), 'page.html', 'text/html'); }));
     hdr.appendChild(fill); hdr.appendChild(tb);
-    var frame = el('iframe', { class: 'html-frame', title: 'Preview', sandbox: 'allow-scripts allow-modals allow-forms allow-popups' });
+    // Our own host page; it sandboxes the user's code in a frame of its own (see assets/preview.html)
+    var frame = el('iframe', { class: 'html-frame', title: 'Preview', src: 'assets/preview.html' });
+    var ORIGIN = location.origin === 'null' ? '*' : location.origin; // file:// pages have an opaque origin
+    var ready = false, pending = null;
+    function send(doc) { if (ready) frame.contentWindow.postMessage({ ckPreview: doc }, ORIGIN); else pending = doc; }
     var con = el('div', { class: 'html-console' });
     var conHdr = el('div', { class: 'html-console-hdr', html: iconSvg(I_TERM, 11) + ' ' });
     conHdr.appendChild(document.createTextNode('CONSOLE'));
@@ -144,7 +148,7 @@
       });
     }
     function page() { return cleanDoc(srcP.html.ta.value, srcP.css.ta.value, srcP.js.ta.value); }
-    function run() { clearTimeout(timer); conBody.innerHTML = ''; frame.srcdoc = buildDoc(srcP.html.ta.value, srcP.css.ta.value, srcP.js.ta.value); }
+    function run() { clearTimeout(timer); conBody.innerHTML = ''; send(buildDoc(srcP.html.ta.value, srcP.css.ta.value, srcP.js.ta.value)); }
     function schedule() { if (!autoCb.checked) return; clearTimeout(timer); timer = setTimeout(run, 500); }
 
     // Tab inserts two spaces instead of leaving the editor
@@ -166,18 +170,22 @@
     window.addEventListener('message', function (e) {
       if (e.source !== frame.contentWindow) return;
       var d = e.data;
+      if (d && d.ckReady) { ready = true; if (pending !== null) { send(pending); pending = null; } return; }
       if (d && d.__ck === 'console') log(d.t, d.m);
     });
 
     function doOpen() {
-      // The tab only hosts the same sandboxed frame as the preview, so the code never runs as CyberKitchen
-      var host = '<!doctype html><meta charset="utf-8"><title>Preview</title><style>html,body{margin:0;height:100%}iframe{display:block;border:0;width:100%;height:100%}</style>' +
-        '<iframe sandbox="' + frame.getAttribute('sandbox') + '" srcdoc="' + page().replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></iframe>';
-      var url = URL.createObjectURL(new Blob([host], { type: 'text/html' }));
-      window.open(url, '_blank', 'noopener');
-      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      // The new tab is the same host page as the preview, so the code runs sandboxed, never as CyberKitchen
+      var w = window.open('assets/preview.html', '_blank');
+      if (!w) { ctx.toast('Allow pop-ups to open the page in a new tab', 'warn'); return; }
+      var doc = page();
+      window.addEventListener('message', function onReady(e) {
+        if (e.source !== w || !e.data || !e.data.ckReady) return;
+        window.removeEventListener('message', onReady);
+        w.postMessage({ ckPreview: doc }, ORIGIN);
+      });
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=html&s=' + b64uEnc(JSON.stringify({ html: srcP.html.ta.value, css: srcP.css.ta.value, js: srcP.js.ta.value, auto: autoCb.checked ? 1 : 0 }))); }
+    function doShare() { CK.share('html', { html: srcP.html.ta.value, css: srcP.css.ta.value, js: srcP.js.ta.value, auto: autoCb.checked ? 1 : 0 }); }
     function doReset() {
       LANGS.forEach(function (l) { srcP[l.id].ta.value = ''; });
       autoCb.checked = true; showLang('html'); run(); ctx.toast('Reset complete', 'success');

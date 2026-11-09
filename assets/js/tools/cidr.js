@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
   function parseIp(s) {
     var m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s.trim());
@@ -147,7 +147,7 @@
       }
       outP.ta.value = lines.join('\n');
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=cidr&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value, p: pfxNum.value, sub: subInput.value }))); }
+    function doShare() { CK.share('cidr', { in: inP.ta.value, p: pfxNum.value, sub: subInput.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; setPrefix(24); subInput.value = ''; run(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
   var VARIANTS = {
     d: { label: 'argon2d', badge: 'GPU hardened', desc: 'Data-dependent, maximizes GPU resistance' },
     i: { label: 'argon2i', badge: 'Timing safe', desc: 'Data-independent, timing-safe' },
@@ -102,7 +102,7 @@
     saltSwitch.appendChild(saltCb); saltSwitch.appendChild(el('span', { class: 'track' })); saltSwitch.appendChild(el('span', {}, 'Custom salt'));
     saltWrap.appendChild(saltSwitch);
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Salt (min 8 chars)' });
-    var saltGen = ui.iconBtn(I_SHUF, 'Random salt', function () { var b = crypto.getRandomValues(new Uint8Array(16)), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); saltInput.value = btoa(s).replace(/=+$/, ''); });
+    var saltGen = ui.iconBtn(I_SHUF, 'Random', function () { var b = crypto.getRandomValues(new Uint8Array(16)), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); saltInput.value = btoa(s).replace(/=+$/, ''); });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltRow.appendChild(saltInput); saltRow.appendChild(saltGen);
     var saltField = ui.field('Salt', saltRow); saltField.style.display = 'none';
@@ -189,7 +189,7 @@
       clearV(); ctx.toast('Hash inspected', 'success');
     }
     function doSwap() { inP.ta.value = outP.ta.value; outP.ta.value = ''; clearV(); ctx.toast('Output moved to input', 'success'); }
-    function doShare() { var st = { v: variant, m: memInput.value, t: timeInput.value, p: parInput.value, l: lenInput.value, out: outSel.value, cs: saltCb.checked ? 1 : 0, salt: saltInput.value, pw: inP.ta.value, h: outP.ta.value }; CK.copy(location.href.split('#')[0] + '#tool=argon2&s=' + b64uEnc(JSON.stringify(st))); }
+    function doShare() { var st = { v: variant, m: memInput.value, t: timeInput.value, p: parInput.value, l: lenInput.value, out: outSel.value, cs: saltCb.checked ? 1 : 0, salt: saltInput.value, pw: inP.ta.value, h: outP.ta.value }; CK.share('argon2', st, { pw: 'password' }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; variant = 'id'; memInput.value = '4096'; timeInput.value = '3'; parInput.value = '1'; lenInput.value = '32'; outSel.value = 'encoded'; saltCb.checked = false; saltInput.value = ''; saltField.style.display = 'none'; updateSel(); clearV(); ctx.toast('Reset complete', 'success'); }
 
     var mm = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

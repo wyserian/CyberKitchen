@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
   var FLAGS = [['g', 'global'], ['i', 'ignore case'], ['m', 'multiline'], ['s', 'dotall'], ['u', 'unicode'], ['y', 'sticky']];
   var COMMON = [
@@ -115,7 +115,7 @@
         outP.ta.value = lines.join('\n');
       });
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=regex&s=' + b64uEnc(JSON.stringify({ p: patInput.value, f: flagStr(), in: inP.ta.value }))); }
+    function doShare() { CK.share('regex', { p: patInput.value, f: flagStr(), in: inP.ta.value }); }
     function doReset() { patInput.value = ''; inP.ta.value = ''; outP.ta.value = ''; commonSel.value = ''; flagState = { g: true, i: false, m: false, s: false, u: false, y: false }; markFlags(); inP.ta.classList.remove('verify-match', 'verify-fail'); ctx.toast('Reset complete', 'success'); }
 
     var m0 = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

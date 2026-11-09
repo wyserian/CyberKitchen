@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
 
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
@@ -67,7 +67,7 @@
     var colR = el('div', { class: 'col' });
     var bgInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', value: '#ffffff', placeholder: 'Background color' });
     bgInput.addEventListener('input', run);
-    var bgGen = ui.iconBtn(I_SHUF, 'Random background', function () { bgInput.value = rndHex(); run(); });
+    var bgGen = ui.iconBtn(I_SHUF, 'Random', function () { bgInput.value = rndHex(); run(); });
     var bgWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     bgInput.style.flex = '1'; bgInput.style.minWidth = '0'; bgWrap.appendChild(bgInput); bgWrap.appendChild(bgGen);
     colL.appendChild(ui.field('Background (for contrast)', bgWrap));
@@ -110,7 +110,7 @@
         grade(ratio)
       ].join('\n');
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=color&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value, bg: bgInput.value }))); }
+    function doShare() { CK.share('color', { in: inP.ta.value, bg: bgInput.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; bgInput.value = '#ffffff'; swatch.style.background = ''; swatch.style.color = ''; run(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

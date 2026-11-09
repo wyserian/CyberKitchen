@@ -7,7 +7,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, rndBytes = CK.rndBytes, unb64 = CK.unb64, b64 = CK.b64;
+  var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, rndBytes = CK.rndBytes, unb64 = CK.unb64, b64 = CK.b64;
   var ENC = new TextEncoder();
   var C = window.CryptoJS;
 
@@ -120,7 +120,7 @@
     var saltWrap = el('div', { class: 'col' });
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Salt' });
     var saltFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']].map(o), null, 'base64');
-    var saltGen = ui.iconBtn(I_SHUF, 'Random salt', function () { saltInput.value = saltFmt.value === 'hex' ? toHex(rndBytes(16)) : saltFmt.value === 'utf8' ? toHex(rndBytes(16)) : b64(rndBytes(16)); if (saltFmt.value === 'utf8') saltFmt.value = 'hex'; });
+    var saltGen = ui.iconBtn(I_SHUF, 'Random', function () { saltInput.value = saltFmt.value === 'hex' ? toHex(rndBytes(16)) : saltFmt.value === 'utf8' ? toHex(rndBytes(16)) : b64(rndBytes(16)); if (saltFmt.value === 'utf8') saltFmt.value = 'hex'; });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltFmt.style.width = 'auto';
     saltRow.appendChild(saltInput); saltRow.appendChild(saltFmt); saltRow.appendChild(saltGen);
@@ -198,7 +198,7 @@
         ctx.toast(match ? 'Match: the key derives from this password' : 'No match', match ? 'success' : 'error');
       }).catch(function (e) { ctx.toast(e.message, 'error'); });
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=kdf&s=' + b64uEnc(JSON.stringify({ a: algo, it: iters, h: hashSel.value, N: nSel.value, r: rInput.value, p: pInput.value, sf: saltFmt.value, salt: saltInput.value, dk: lenInput.value, of: outFmt.value }))); }
+    function doShare() { CK.share('kdf', { a: algo, it: iters, h: hashSel.value, N: nSel.value, r: rInput.value, p: pInput.value, sf: saltFmt.value, salt: saltInput.value, dk: lenInput.value, of: outFmt.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; algo = 'pbkdf2'; algoSel.value = 'pbkdf2'; iters = 310000; iterCustom.value = ''; hashSel.value = 'SHA-256'; nSel.value = '14'; rInput.value = '8'; pInput.value = '1'; saltInput.value = ''; saltFmt.value = 'base64'; lenInput.value = '32'; outFmt.value = 'hex'; applyAlgo(); markIters(); updateSel(); clearVerify(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

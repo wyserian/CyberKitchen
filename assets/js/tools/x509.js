@@ -7,7 +7,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
   var DEC = new TextDecoder();
 
   function b64ToBytes(s) { s = s.trim().replace(/\s/g, ''); var bin = atob(s), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
@@ -186,7 +186,7 @@
         outP.ta.value += '\n\nFingerprints:\n' + pad('  SHA-1') + colonHex(new Uint8Array(d[0])) + '\n' + pad('  SHA-256') + colonHex(new Uint8Array(d[1]));
       }).catch(function () { });
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=x509&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value }))); }
+    function doShare() { CK.share('x509', { in: inP.ta.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

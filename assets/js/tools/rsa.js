@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
+  var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
   var ENC = new TextEncoder(), DEC = new TextDecoder();
 
   function detectFmt(s) {
@@ -148,7 +148,7 @@
       ctx.toast('RSA · detected ' + fmtLabelOf(fmt) + ' input' + guessed, 'success');
     }
     function doSwap() { inP.ta.value = outP.ta.value; outP.ta.value = ''; clearVerify(); ctx.toast('Output moved to input', 'success'); }
-    function doShare() { var st = { sz: bits, h: hash, cf: ctFmt.value, pf: ptFmt.value, pub: pub.ta.value, priv: priv.ta.value, in: inP.ta.value, out: outP.ta.value }; CK.copy(location.href.split('#')[0] + '#tool=rsa&s=' + b64uEnc(JSON.stringify(st))); }
+    function doShare() { var st = { sz: bits, h: hash, cf: ctFmt.value, pf: ptFmt.value, pub: pub.ta.value, priv: priv.ta.value, in: inP.ta.value, out: outP.ta.value }; CK.share('rsa', st, { priv: 'private key' }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; pub.ta.value = ''; priv.ta.value = ''; bits = 2048; hash = 'SHA-256'; sizeSel.value = '2048'; hashSel.value = 'SHA-256'; ctFmt.value = 'base64'; ptFmt.value = 'utf8'; clearVerify(); updateSel(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

@@ -5,7 +5,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
   function lib() { if (typeof bcrypt !== 'undefined') return bcrypt; if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) return dcodeIO.bcrypt; return null; }
   function parseBcrypt(h) { var m = /^\$(2[abxy]?)\$(\d{2})\$([./A-Za-z0-9]{53})$/.exec(h); if (!m) return null; return { version: m[1], cost: parseInt(m[2], 10), salt: m[3].slice(0, 22), hashPart: m[3].slice(22) }; }
   // Per-cost guidance and rough in-browser timing (carried over from the standalone bcrypt tool)
@@ -74,7 +74,7 @@
     saltSwitch.appendChild(saltCb); saltSwitch.appendChild(el('span', { class: 'track' })); saltSwitch.appendChild(el('span', {}, 'Custom salt'));
     saltWrap.appendChild(saltSwitch);
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: '$2a$10$22-char-salt' });
-    var saltGen = ui.iconBtn(I_SHUF, 'Random salt', function () { var b = lib(); if (!b) { ctx.toast('bcrypt library not loaded', 'error'); return; } saltInput.value = b.genSaltSync(cost); });
+    var saltGen = ui.iconBtn(I_SHUF, 'Random', function () { var b = lib(); if (!b) { ctx.toast('bcrypt library not loaded', 'error'); return; } saltInput.value = b.genSaltSync(cost); });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltRow.appendChild(saltInput); saltRow.appendChild(saltGen);
     var saltField = ui.field('Salt', saltRow); saltField.style.display = 'none';
@@ -156,7 +156,7 @@
       clearV(); ctx.toast('Hash inspected', 'success');
     }
     function doSwap() { inP.ta.value = outP.ta.value; outP.ta.value = ''; clearV(); ctx.toast('Output moved to input', 'success'); }
-    function doShare() { var st = { c: cost, out: outSel.value, cs: saltCb.checked ? 1 : 0, salt: saltInput.value, pw: inP.ta.value, h: outP.ta.value }; CK.copy(location.href.split('#')[0] + '#tool=bcrypt&s=' + b64uEnc(JSON.stringify(st))); }
+    function doShare() { var st = { c: cost, out: outSel.value, cs: saltCb.checked ? 1 : 0, salt: saltInput.value, pw: inP.ta.value, h: outP.ta.value }; CK.share('bcrypt', st, { pw: 'password' }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; cost = 10; custInput.value = ''; outSel.value = 'full'; saltCb.checked = false; saltInput.value = ''; saltField.style.display = 'none'; clearV(); markCost(); updateSel(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

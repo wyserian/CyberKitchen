@@ -30,19 +30,30 @@ Node.prototype.removeAttribute = function (k) { delete this.attrs[k]; };
 Node.prototype.appendChild = function (c) { this.children.push(c); c.parentNode = this; return c; };
 Node.prototype.insertBefore = function (c, ref) { var i = this.children.indexOf(ref); if (i < 0) this.children.push(c); else this.children.splice(i, 0, c); c.parentNode = this; return c; };
 Node.prototype.addEventListener = function (t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); };
+Node.prototype.dispatchEvent = function (e) { for (var n = this; n; n = e.bubbles ? n.parentNode : null) (n.listeners[e.type] || []).forEach(function (f) { f(e); }); return true; };
 Node.prototype.fire = function (t, extra) { var e = Object.assign({ target: this, preventDefault: function () {}, stopPropagation: function () {} }, extra || {}); (this.listeners[t] || []).forEach(function (f) { f(e); }); };
 Node.prototype.focus = function () {};
-Node.prototype.closest = function () { return null; };
+Node.prototype.closest = function (sel) { var c = sel.replace('.', ''); for (var n = this; n; n = n.parentNode) if (n.classList && n.classList.contains(c)) return n; return null; };
+Object.defineProperty(Node.prototype, 'options', { get: function () { return this.children.filter(function (c) { return c.tagName === 'OPTION'; }); } });
 Object.defineProperty(Node.prototype, 'firstChild', { get: function () { return this.children[0] || null; } });
 Object.defineProperty(Node.prototype, 'innerHTML', { get: function () { return this._html || ''; }, set: function (v) { this._html = v; this.children = []; if (/class="lbl"/.test(v)) { var l = new Node('span'); l.className = 'lbl'; this.children.push(l); } } });
 Object.defineProperty(Node.prototype, 'textContent', { get: function () { return this._text || this._html || ''; }, set: function (v) { this._text = v; } });
-Node.prototype.querySelector = function (sel) { var cls = sel.replace('.', ''), q = this.children.slice(); while (q.length) { var n = q.shift(); if (n.className && n.className.split(' ').indexOf(cls) >= 0) return n; q = q.concat(n.children); } return null; };
+Node.prototype.querySelector = function (sel) { var cls = sel.charAt(0) === '.' ? sel.slice(1) : null, q = this.children.slice(); while (q.length) { var n = q.shift(); if (cls ? n.classList.contains(cls) : n.tagName === sel.toUpperCase()) return n; q = q.concat(n.children); } return null; };
+// Supports the '.ancestor tag[attr=value], ...' selectors the app uses
+Node.prototype.querySelectorAll = function (sel) {
+  var parts = sel.split(',').map(function (p) { return /^\s*\.([\w-]+)\s+(\w+)(?:\[(\w+)=([\w-]+)\])?\s*$/.exec(p); }), out = [], self = this;
+  (function walk(n) { n.children.forEach(function (c) {
+    if (parts.some(function (m) { if (!m || c.tagName !== m[2].toUpperCase() || (m[3] && c.attrs[m[3]] !== m[4])) return false; for (var p = c.parentNode; p && p !== self.parentNode; p = p.parentNode) if (p.classList && p.classList.contains(m[1])) return true; return false; })) out.push(c);
+    walk(c); }); })(this);
+  return out;
+};
 global.HTMLTextAreaElement = function () {};
 Object.defineProperty(HTMLTextAreaElement.prototype, 'value', { configurable: true, get: function () { return this._v || ''; }, set: function (v) { this._v = String(v); } });
 global.window = global;
 global.document = { createElement: function (t) { return new Node(t); }, createTextNode: function (t) { var n = new Node('#text'); n._text = t; return n; }, body: new Node('body'), documentElement: new Node('html'), getElementById: function () { return null; }, addEventListener: function () {} };
 global.location = { hash: '', href: 'https://x.test/' };
-global.localStorage = { getItem: function () { return null; }, setItem: function () {} };
+var LS = {}; global.localStorage = { getItem: function (k) { return k in LS ? LS[k] : null; }, setItem: function (k, v) { LS[k] = String(v); } };
+var clip = null; Object.defineProperty(global.navigator, 'clipboard', { configurable: true, value: { writeText: function (t) { clip = t; return Promise.resolve(); } } });
 
 /* ---- Load the real app ---- */
 function load(p) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, p), 'utf8'), { filename: p }); }
@@ -52,7 +63,7 @@ var toasts = [];
 CK.toast = function (m, t) { toasts.push((t || 'success') + ': ' + m); };
 var mounts = {};
 CK.registerTool = function (id, fn) { mounts[id] = fn; };
-['hash', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
+['hash', 'checksum', 'jwt', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
 
 function all(n, out) { out = out || []; out.push(n); n.children.forEach(function (c) { all(c, out); }); return out; }
 function mount(id) {
@@ -96,6 +107,95 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   set(H.tas[0], '68 65 6c 6c 6f'); H.prim('Hash').fire('click');
   await until(function () { return H.tas[1].value; });
   ok(H.tas[1].value === nc.createHash('sha256').update('hello').digest('hex'), 'hash: valid hex hashes the right bytes');
+
+  /* File Checksum: one algorithm at a time; Verify checks the output panel against it */
+  var C = mount('checksum'), out = C.tas[0], picker = all(C.root).filter(function (n) { return n.attrs.type === 'file'; })[0];
+  var h = function (a) { return nc.createHash(a).update('hello').digest('hex'); };
+  picker.files = [new File(['hello'], 'hello.txt')]; picker.fire('change');
+  await until(function () { return out.value; });
+  ok(out.value === h('sha256'), 'checksum: SHA-256 of the file by default');
+  set(C.field('Output format'), 'HEX');
+  ok(out.value === h('sha256').toUpperCase(), 'checksum: format change rewrites its own output');
+  set(out, h('md5')); C.byTitle('Verify').fire('click'); await sleep(50);
+  ok(/No match: SHA-256 is 32 bytes, this is 16 bytes \(that length is MD5\)/.test(last()), 'checksum: wrong-length value names the algorithm it fits');
+  set(C.field('Algorithm'), 'md5'); await sleep(50);
+  ok(/Match: MD5 of hello\.txt/.test(last()) && out.value === h('md5'), 'checksum: switching algorithm verifies a pasted value instead of overwriting it');
+  set(out, h('md5').toUpperCase() + '  hello.txt'); C.byTitle('Verify').fire('click'); await sleep(50);
+  ok(/Match: MD5/.test(last()), 'checksum: sha256sum-style "HASH  filename" line verifies');
+  set(out, ''); set(C.field('Algorithm'), 'sha1'); await until(function () { return out.value; });
+  ok(out.value === h('sha1').toUpperCase(), 'checksum: empty output is filled for the newly selected algorithm');
+
+  /* JWT alg "none": unsigned token, no secret needed */
+  var J = mount('jwt'), algoSel = J.field('Algorithm');
+  set(algoSel, 'none');
+  ok(J.field('Secret').parentNode.style.display === 'none', 'jwt none: secret field hidden');
+  set(J.tas[0], '{"sub":"x"}'); J.prim('Sign').fire('click'); await sleep(50);
+  var tok = J.tas[1].value, parts = tok.split('.');
+  ok(parts.length === 3 && parts[2] === '' && JSON.parse(Buffer.from(parts[0], 'base64url')).alg === 'none' && JSON.parse(Buffer.from(parts[1], 'base64url')).sub === 'x', 'jwt none: signs to header.payload. without a secret');
+  set(algoSel, 'HS256'); set(J.tas[0], tok); J.prim('Decode').fire('click');
+  ok(algoSel.value === 'none', 'jwt none: decoding an alg-none token selects none');
+  J.byTitle('Verify').fire('click'); await sleep(50);
+  ok(/Token is unsigned \(alg none\)/.test(last()), 'jwt none: Verify reports the token as unsigned');
+
+  /* JWT Swap: decoded output comes back as signable { header, payload } JSON */
+  var JIO = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+  var J2 = mount('jwt');
+  set(J2.tas[0], JIO); J2.prim('Decode').fire('click');
+  J2.byTitle('Swap').fire('click');
+  var doc = null; try { doc = JSON.parse(J2.tas[0].value); } catch (e) { }
+  ok(doc && doc.header.alg === 'HS256' && doc.payload.name === 'John Doe' && J2.tas[1].value === '', 'jwt swap: decoded view becomes { header, payload } JSON, output cleared');
+  set(J2.field('Secret').children[0], 'your-256-bit-secret'); J2.prim('Sign').fire('click');
+  await until(function () { return J2.tas[1].value; });
+  ok(J2.tas[1].value === JIO, 'jwt swap: the swapped JSON re-signs to the original jwt.io token');
+  J2.byTitle('Swap').fire('click');
+  ok(J2.tas[0].value === JIO && J2.tas[1].value === '', 'jwt swap: a token in the output moves as-is');
+
+  /* JWT ES256 / ES384 / EdDSA, cross-checked with Node's crypto */
+  var J3 = mount('jwt'), sel3 = J3.field('Algorithm'), pubIn = J3.field('Public key').children[0], privIn = J3.field('Private key').children[0];
+  function jwtParts(t) { var p = t.split('.'); return { h: JSON.parse(Buffer.from(p[0], 'base64url')), si: p[0] + '.' + p[1], sig: Buffer.from(p[2], 'base64url') }; }
+  var ec = nc.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+  set(sel3, 'ES256'); set(privIn, ec.privateKey.export({ type: 'pkcs8', format: 'pem' }));
+  set(J3.tas[0], '{"sub":"es"}'); J3.prim('Sign').fire('click'); await until(function () { return J3.tas[1].value; });
+  var e1 = jwtParts(J3.tas[1].value);
+  ok(e1.h.alg === 'ES256' && e1.sig.length === 64 && nc.verify('sha256', Buffer.from(e1.si), { key: ec.publicKey, dsaEncoding: 'ieee-p1363' }, e1.sig), 'jwt ES256: tool signs, Node verifies (64-byte raw r||s)');
+  var ed = nc.generateKeyPairSync('ed25519');
+  J3.tas[1].value = ''; set(sel3, 'EdDSA'); set(privIn, JSON.stringify(ed.privateKey.export({ format: 'jwk' })));
+  set(J3.tas[0], '{"sub":"ed"}'); J3.prim('Sign').fire('click'); await until(function () { return J3.tas[1].value; });
+  var e2 = jwtParts(J3.tas[1].value);
+  ok(e2.h.alg === 'EdDSA' && nc.verify(null, Buffer.from(e2.si), ed.publicKey, e2.sig), 'jwt EdDSA: signs with a JWK private key, Node verifies');
+  var ec384 = nc.generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
+  var si384 = Buffer.from('{"alg":"ES384","typ":"JWT"}').toString('base64url') + '.' + Buffer.from('{"sub":"node"}').toString('base64url');
+  var nodeTok = si384 + '.' + nc.sign('sha384', Buffer.from(si384), { key: ec384.privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64url');
+  set(sel3, 'HS256'); set(J3.tas[0], nodeTok); J3.prim('Decode').fire('click');
+  ok(sel3.value === 'ES384', 'jwt ES384: decoding selects ES384');
+  set(pubIn, ec384.publicKey.export({ type: 'spki', format: 'pem' })); J3.byTitle('Verify').fire('click'); await sleep(150);
+  ok(/Signature valid \(ES384\)/.test(last()), 'jwt ES384: Node-signed token verifies in the tool');
+
+  /* Settings are remembered per tool; text fields (keys, inputs) never are */
+  var cbOf = function (r) { return all(r).filter(function (n) { return n.attrs.type === 'checkbox'; })[0]; };
+  var S1 = mount('hash'); CK.rememberSettings('hash', S1.root);
+  set(S1.field('SHA-2'), 'sha512'); set(S1.field('Output format'), 'base64');
+  var hm = cbOf(S1.root); hm.checked = true; hm.fire('change');
+  set(S1.field('HMAC key').children[0], 'topsecret');
+  S1.root.dispatchEvent(new Event('change', { bubbles: true })); await sleep(350);
+  var saved = LS['ck.cfg.hash'] || '';
+  ok(saved.indexOf('sha512') >= 0 && saved.indexOf('topsecret') < 0, 'settings: saved, but never the HMAC key text');
+  var S2 = mount('hash'); CK.rememberSettings('hash', S2.root);
+  ok(S2.field('SHA-2').value === 'sha512' && S2.field('Output format').value === 'base64' && cbOf(S2.root).checked && S2.field('HMAC key').children[0].value === '', 'settings: restored on the next visit, key field stays empty');
+  location.hash = '#tool=hash&s=abc';
+  var S3 = mount('hash'); CK.rememberSettings('hash', S3.root);
+  ok(S3.field('SHA-2').value === 'sha256', 'settings: a share link takes precedence over saved settings');
+  location.hash = '';
+
+  /* Share links leave secrets out unless the user includes them */
+  var shared = function () { return JSON.parse(CK.b64uDec(clip.split('&s=')[1])); };
+  clip = null; CK.share('aes', { k: 'mykey', m: 'CBC' }, { k: 'key' }); await sleep(20);
+  ok(clip && !('k' in shared()) && shared().m === 'CBC', 'share: secret left out by default');
+  var acts = all(document.body).filter(function (n) { return n.className === 'toast-act'; });
+  acts[acts.length - 1].fire('click'); await sleep(20);
+  ok(shared().k === 'mykey', 'share: "Include it" copies the link with the secret');
+  clip = null; CK.share('cidr', { in: '10.0.0.0/8' }); await sleep(20);
+  ok(shared().in === '10.0.0.0/8', 'share: links without secrets copy as they are');
 
   /* Markdown: alt text cannot break out of its attribute */
   var M = mount('markdown');
@@ -167,6 +267,23 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
     if (!nc.verify('sha256', Buffer.from('msg ' + i), { key: kp.publicKey, dsaEncoding: 'der' }, Buffer.from(S.tas[1].value, 'base64'))) derOk = false;
   }
   ok(derOk, 'ecdsa: 20 DER signatures verify in Node');
+
+  /* Offline cache: everything the app loads is precached, and a changed precached file needs a new CACHE version */
+  var swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), idx = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  var ASSETS = JSON.parse(swSrc.match(/var ASSETS = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"'));
+  var refs = (idx.match(/(?:src|href)="(assets\/[^"]+|manifest\.webmanifest)"/g) || []).map(function (r) { return r.replace(/^(?:src|href)="|"$/g, ''); }).concat(['assets/preview.html']);
+  var notCached = refs.filter(function (r) { return ASSETS.indexOf(r) < 0; });
+  ok(!notCached.length, 'sw.js precaches every file index.html loads' + (notCached.length ? ' (missing: ' + notCached.join(', ') + ')' : ''));
+  var missing = ASSETS.filter(function (a) { return a !== './' && !fs.existsSync(path.join(ROOT, a)); });
+  ok(!missing.length, 'every precached file exists' + (missing.length ? ' (missing: ' + missing.join(', ') + ')' : ''));
+  try {
+    var git = function () { return require('child_process').execFileSync('git', [].slice.call(arguments), { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); };
+    var changed = (git('diff', '--name-only', 'HEAD') + git('ls-files', '--others', '--exclude-standard')).split(/\r?\n/).filter(Boolean);
+    var cachedChanged = changed.filter(function (f) { return f === 'index.html' || ASSETS.indexOf(f) >= 0; });
+    var headCache = (git('show', 'HEAD:sw.js').match(/var CACHE = '([^']+)'/) || [])[1], nowCache = swSrc.match(/var CACHE = '([^']+)'/)[1];
+    ok(!cachedChanged.length || nowCache !== headCache, 'CACHE version bumped for changed precached files' +
+      (cachedChanged.length && nowCache === headCache ? ' (still ' + nowCache + '; changed: ' + cachedChanged.slice(0, 5).join(', ') + ')' : ''));
+  } catch (e) { console.log('skip: cache-bump check needs git'); }
 
   console.log((fails ? fails + ' FAILED, ' : '') + passes + ' passed');
   process.exit(fails ? 1 : 0);

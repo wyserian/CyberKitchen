@@ -4,7 +4,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes;
+  var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes;
   var E = new TextEncoder(), D = new TextDecoder();
   function s2b(s) { return E.encode(s); }
   function b2s(b) { return D.decode(b); }
@@ -208,7 +208,7 @@
       if (id) { select(id); ctx.toast('Guessed cipher: ' + get(id).label + ' (best-effort)', 'success'); }
       else ctx.toast('Could not detect a cipher (best-effort)', 'warn');
     }
-    function doShare() { var st = { c: current, k: keyInput.value, n: numInput.value, in: inP.ta.value, out: outP.ta.value }; CK.copy(location.href.split('#')[0] + '#tool=classical&s=' + b64uEnc(JSON.stringify(st))); }
+    function doShare() { var st = { c: current, k: keyInput.value, n: numInput.value, in: inP.ta.value, out: outP.ta.value }; CK.share('classical', st); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; keyInput.value = ''; numInput.value = '3'; delete numInput.dataset.touched; clearVerify(); select('caesar'); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

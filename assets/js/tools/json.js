@@ -5,7 +5,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
 
   function sortDeep(v) {
@@ -130,7 +130,7 @@
         ctx.toast(res.length + (res.length === 1 ? ' match' : ' matches'), res.length ? 'success' : 'warn');
       } catch (e) { ctx.toast(e.message, 'error'); }
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=json&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value, ind: indentSel.value, sort: sortCb.checked ? 1 : 0, path: pathInput.value }))); }
+    function doShare() { CK.share('json', { in: inP.ta.value, ind: indentSel.value, sort: sortCb.checked ? 1 : 0, path: pathInput.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; indentSel.value = '2'; sortCb.checked = false; pathInput.value = ''; clearVerify(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

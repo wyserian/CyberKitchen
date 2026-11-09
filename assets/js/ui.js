@@ -38,8 +38,8 @@ CK.ui = (function () {
     return function restore() {
       order.forEach(function (i) {
         var e = els[i];
-        if (e.type === 'checkbox') { if (e.checked !== vals[i]) { e.checked = vals[i]; e.dispatchEvent(new Event('change')); } }
-        else if (e.value !== vals[i]) { e.value = vals[i]; e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input')); }
+        if (e.type === 'checkbox') { if (e.checked !== vals[i]) { e.checked = vals[i]; e.dispatchEvent(new Event('change', { bubbles: true })); } }
+        else if (e.value !== vals[i]) { e.value = vals[i]; e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }
       });
     };
   }

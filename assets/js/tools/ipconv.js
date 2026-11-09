@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
   function ipStr(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
   function parseDotted(s) {
@@ -86,7 +86,7 @@
         pad('Per-octet') + [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join(' . ')
       ].join('\n');
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=ipconv&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value, f: fmtSel.value }))); }
+    function doShare() { CK.share('ipconv', { in: inP.ta.value, f: fmtSel.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; fmtSel.value = 'auto'; run(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

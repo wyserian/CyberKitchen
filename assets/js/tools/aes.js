@@ -5,7 +5,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, randomSecret = CK.randomSecret;
+  var b64uDec = CK.b64uDec, randomSecret = CK.randomSecret;
   var C = window.CryptoJS;
 
   function toWA(str, fmt) {
@@ -69,14 +69,14 @@
 
     var keyInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Encryption key' });
     var keyFmt = ui.select(['utf8', 'hex', 'base64'].map(fmtOpt), function () { updateSel(); }, 'utf8');
-    var keyGen = ui.iconBtn(I_SHUF, 'Random key', function () { keyInput.value = randomSecret(32, keyFmt.value); updateSel(); });
+    var keyGen = ui.iconBtn(I_SHUF, 'Random', function () { keyInput.value = randomSecret(32, keyFmt.value); updateSel(); });
     var keyWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     keyInput.style.flex = '1'; keyFmt.style.width = 'auto'; keyWrap.appendChild(keyInput); keyWrap.appendChild(keyFmt); keyWrap.appendChild(keyGen);
     var keyField = ui.field('Key', keyWrap);
 
     var ivInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Initialization vector (16 bytes)' });
     var ivFmt = ui.select(['utf8', 'hex', 'base64'].map(fmtOpt), null, 'hex');
-    var ivGen = ui.iconBtn(I_SHUF, 'Random initialization vector', function () { ivInput.value = randomSecret(16, ivFmt.value); });
+    var ivGen = ui.iconBtn(I_SHUF, 'Random', function () { ivInput.value = randomSecret(16, ivFmt.value); });
     var ivWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     ivInput.style.flex = '1'; ivFmt.style.width = 'auto'; ivWrap.appendChild(ivInput); ivWrap.appendChild(ivFmt); ivWrap.appendChild(ivGen);
     var ivField = ui.field('Initialization Vector', ivWrap);
@@ -172,7 +172,7 @@
       updateSel();
       ctx.toast('AES · detected ' + fmtLabelOf(fmt) + ' input' + guessed, 'success');
     }
-    function doShare() { var st = { k: keyInput.value, kf: keyFmt.value, iv: ivInput.value, ivf: ivFmt.value, m: modeSel.value, p: padSel.value, cf: ctFmt.value, pf: ptFmt.value, pt: inP.ta.value, ct: outP.ta.value }; CK.copy(location.href.split('#')[0] + '#tool=aes&s=' + b64uEnc(JSON.stringify(st))); }
+    function doShare() { var st = { k: keyInput.value, kf: keyFmt.value, iv: ivInput.value, ivf: ivFmt.value, m: modeSel.value, p: padSel.value, cf: ctFmt.value, pf: ptFmt.value, pt: inP.ta.value, ct: outP.ta.value }; CK.share('aes', st, { k: 'key' }); }
     function doReset() { keyInput.value = ''; ivInput.value = ''; inP.ta.value = ''; outP.ta.value = ''; keyFmt.value = 'utf8'; ivFmt.value = 'hex'; modeSel.value = 'CBC'; padSel.value = 'Pkcs7'; ctFmt.value = 'utf8'; ptFmt.value = 'utf8'; updateSel(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

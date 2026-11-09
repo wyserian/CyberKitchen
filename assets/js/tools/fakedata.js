@@ -5,7 +5,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
   function randInt(max) { var limit = Math.floor(0x100000000 / max) * max, a = new Uint32Array(1); do { crypto.getRandomValues(a); } while (a[0] >= limit); return a[0] % max; }
   function pick(a) { return a[randInt(a.length)]; }
   function digits(n) { var s = ''; for (var i = 0; i < n; i++) s += randInt(10); return s; }
@@ -261,7 +261,7 @@
       else ta.value = vals.join('\n');
     }
     function doReset() { current = 'name'; setCount(5); fmtSel.value = 'plain'; updateDownloadName(); select('name'); generate(); ctx.toast('Reset complete', 'success'); }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=fakedata&s=' + b64uEnc(JSON.stringify({ t: current, c: +countInput.value, f: fmtSel.value }))); }
+    function doShare() { CK.share('fakedata', { t: current, c: +countInput.value, f: fmtSel.value }); }
 
     countRange.addEventListener('input', function () { countInput.value = countRange.value; generate(); });
     countInput.addEventListener('input', function () { countRange.value = countInput.value; generate(); });

@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
   if (typeof qrcode !== 'undefined' && qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) {
     qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']; // encode input as UTF-8
   }
@@ -104,7 +104,7 @@
       var a = el('a'); a.href = cv.toDataURL('image/png'); a.download = 'qrcode.png'; a.click();
       ctx.toast('PNG download started', 'success');
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=qr&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value, e: ecl, fg: fgInput.value, bg: bgInput.value }))); }
+    function doShare() { CK.share('qr', { in: inP.ta.value, e: ecl, fg: fgInput.value, bg: bgInput.value }); }
     function doReset() { inP.ta.value = ''; box.innerHTML = ''; lastQR = null; lastSvg = ''; ecl = 'M'; fgInput.value = '#000000'; bgInput.value = '#ffffff'; markEcl(); run(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

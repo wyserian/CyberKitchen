@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
   var SETS = { lower: 'abcdefghijklmnopqrstuvwxyz', upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', digits: '0123456789', symbols: '!@#$%^&*()-_=+[]{};:,.<>?/' };
   var DEFAULT_SYMBOLS = '!@#$%^&*()-_=+[]{}|;:,.<>?';
   var SIMILAR = /[il1LoO0]/g;
@@ -231,12 +231,12 @@
       onKey: function (e) { if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'g') { e.preventDefault(); generate(); } }
     };
     function doShare() {
-      CK.copy(location.href.split('#')[0] + '#tool=password&s=' + b64uEnc(JSON.stringify({
+      CK.share('password', {
         m: mode, l: +lenRange.value, q: +qtyInput.value,
         u: tUpper.cb.checked, lo: tLower.cb.checked, d: tDigit.cb.checked, y: tSym.cb.checked,
         amb: tAmbig.cb.checked, sim: tSim.cb.checked, guar: tGuar.cb.checked, nr: tNoRep.cb.checked, sym: symInput.value,
         w: wordInput.value, leet: leetTog.cb.checked, anc: anchorSel.value
-      })));
+      });
     }
     function doReset() {
       mode = 'custom'; modePk.setActive('custom'); presetPk.setActive(null);

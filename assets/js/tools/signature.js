@@ -7,7 +7,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
+  var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
   var ENC = new TextEncoder(), DEC = new TextDecoder();
 
   /* Minimal DER helpers */
@@ -206,7 +206,7 @@
         }, next);
       })();
     }
-    function doShare() { var st = { a: algo, h: hashSel.value, mf: msgFmt.value, sf: sigFmt.value, e: encSel.value, pub: pub.ta.value, priv: priv.ta.value, in: inP.ta.value, out: outP.ta.value }; CK.copy(location.href.split('#')[0] + '#tool=signature&s=' + b64uEnc(JSON.stringify(st))); }
+    function doShare() { var st = { a: algo, h: hashSel.value, mf: msgFmt.value, sf: sigFmt.value, e: encSel.value, pub: pub.ta.value, priv: priv.ta.value, in: inP.ta.value, out: outP.ta.value }; CK.share('signature', st, { priv: 'private key' }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; pub.ta.value = ''; priv.ta.value = ''; msgFmt.value = 'utf8'; sigFmt.value = 'base64'; encSel.value = 'raw'; setAlgo('P-256'); clearVerify(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || ''), st = null;

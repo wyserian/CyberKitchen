@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes, rndBytes = CK.rndBytes;
+  var b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes, rndBytes = CK.rndBytes;
   var ENC = new TextEncoder();
   var B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -57,7 +57,7 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CLOCK);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHUF, 'Random secret', doRandom));
+    strip.acts.appendChild(ui.iconBtn(I_SHUF, 'Random', doRandom));
     strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
     cfg.appendChild(strip.strip);
@@ -141,7 +141,7 @@
       fmtSel.value = 'base32';
       regen(); ctx.toast('Random secret generated (Base32)', 'success');
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=totp&s=' + b64uEnc(JSON.stringify({ m: mode, a: algo(), d: digitsSel.value, p: periodInput.value, c: counterInput.value, f: fmtSel.value, sec: inP.ta.value }))); }
+    function doShare() { CK.share('totp', { m: mode, a: algo(), d: digitsSel.value, p: periodInput.value, c: counterInput.value, f: fmtSel.value, sec: inP.ta.value }, { sec: 'shared secret' }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; mode = 'totp'; modeSel.value = 'totp'; algoSel.value = 'SHA-1'; digitsSel.value = '6'; periodInput.value = '30'; counterInput.value = '0'; fmtSel.value = 'base32'; applyMode(); ctx.toast('Reset complete', 'success'); }
 
     // Live tick: keep the countdown current and roll the code over on each new step

@@ -5,7 +5,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -108,7 +108,7 @@
       outP.ta.value = lines.join('\n');
     }
     function doNow() { inP.ta.value = String(Date.now()); modeSel.value = 'ms'; run(); }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=timestamp&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value, m: modeSel.value, f: fmtInput.value }))); }
+    function doShare() { CK.share('timestamp', { in: inP.ta.value, m: modeSel.value, f: fmtInput.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; modeSel.value = 'auto'; fmtInput.value = 'YYYY-MM-DD HH:mm:ss'; run(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

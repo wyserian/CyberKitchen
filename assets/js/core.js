@@ -93,7 +93,7 @@ var CK = (function () {
     }
   };
 
-  /* Toast. Optional action = { label, fn } adds a button (e.g. Undo).
+  /* Toast. Optional action = { label, fn, ms } adds a button (e.g. Undo); ms overrides how long it stays.
      Errors and actionable toasts stay longer so they can be read and used;
      clicking the toast dismisses it. Announced to screen readers. */
   var _toastEl = null, _toastTimer = null;
@@ -117,13 +117,14 @@ var CK = (function () {
     void _toastEl.offsetWidth;
     _toastEl.classList.add('show');
     clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(_hideToast, action || type === 'error' ? 6000 : type === 'warn' ? 4000 : 2600);
+    _toastTimer = setTimeout(_hideToast, action && action.ms || (action || type === 'error' ? 6000 : type === 'warn' ? 4000 : 2600));
   }
 
   /* Clipboard */
-  function copy(text) {
+  // onOk replaces the default "Copied" toast (used by share links)
+  function copy(text, onOk) {
     if (text == null || text === '') { toast('Nothing to copy', 'warn'); return; }
-    var ok = function () { toast('Copied to clipboard', 'success'); };
+    var ok = function () { if (onOk) onOk(); else toast('Copied to clipboard', 'success'); };
     var fallback = function () {
       try {
         var ta = el('textarea');
@@ -139,6 +140,22 @@ var CK = (function () {
     if (navigator.clipboard && navigator.clipboard.writeText)
       navigator.clipboard.writeText(text).then(ok).catch(fallback);
     else fallback();
+  }
+
+  /* Share link for a tool's state. Secret fields (keys, passwords) are left out unless the user
+     chooses to include them: links end up in chat logs and browser history.
+     secrets: { stateKey: 'label shown to the user' } */
+  function share(id, state, secrets) {
+    var base = location.href.split('#')[0] + '#tool=' + id + '&s=';
+    var held = Object.keys(secrets || {}).filter(function (k) { return state[k]; });
+    if (!held.length) { copy(base + b64uEnc(JSON.stringify(state))); return; }
+    var safe = {}; Object.keys(state).forEach(function (k) { if (held.indexOf(k) < 0) safe[k] = state[k]; });
+    var names = held.map(function (k) { return secrets[k]; }).join(' and ');
+    copy(base + b64uEnc(JSON.stringify(safe)), function () {
+      toast('Link copied without your ' + names, 'warn', { label: 'Include it', fn: function () {
+        copy(base + b64uEnc(JSON.stringify(state)), function () { toast('Link includes your ' + names + ': share it only with people you trust', 'warn'); });
+      } });
+    });
   }
 
   /* Clipboard paste (returns a promise of text, or null) */
@@ -226,12 +243,48 @@ var CK = (function () {
     if (mountFn) {
       var api = mountFn(root, ctx);
       _apis[id] = api || {};
+      rememberSettings(id, root);
     } else {
       _renderPlaceholder(root, tool);
     }
   }
 
   // Shown only when a tool's script failed to load (e.g. a library did not download)
+  /* Remember a tool's settings: dropdowns, switches and number fields in its config panel.
+     Text fields are never stored, so keys, secrets, passwords and inputs stay out of storage.
+     A share link in the URL takes precedence over saved settings. */
+  var SETTINGS = '.config select, .config input[type=checkbox], .config input[type=number], .config input[type=range]';
+  function _settingEls(root) {
+    var els = [].slice.call(root.querySelectorAll(SETTINGS)), seen = {};
+    // Key each control by its label (plus a counter for repeats), so saved values survive layout changes
+    return els.map(function (e) {
+      var f = e.closest('.switch') || e.closest('.field'), lbl = f ? (f.querySelector('label') || f).textContent.trim() : '';
+      var k = (lbl || e.tagName) + '|' + (e.type || ''); seen[k] = (seen[k] || 0) + 1;
+      return { el: e, key: k + '#' + seen[k] };
+    });
+  }
+  function rememberSettings(id, root) {
+    var name = 'cfg.' + id, timer = null;
+    if (!/(?:^|[#&])s=/.test(location.hash)) {
+      var saved = null; try { saved = JSON.parse(store.get(name, 'null')); } catch (e) { }
+      if (saved) {
+        var rank = function (e) { return e.tagName === 'SELECT' ? 0 : e.type === 'checkbox' ? 1 : 2; };
+        _settingEls(root).sort(function (a, b) { return rank(a.el) - rank(b.el); }).forEach(function (c) {
+          var v = saved[c.key], e = c.el;
+          if (v === undefined) return;
+          if (e.type === 'checkbox') { if (e.checked !== v) { e.checked = v; e.dispatchEvent(new Event('change', { bubbles: true })); } }
+          else if (e.value !== v && (e.tagName !== 'SELECT' || [].some.call(e.options, function (o) { return o.value === v; }))) {
+            e.value = v; e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+          }
+        });
+      }
+    }
+    function save() { var o = {}; _settingEls(root).forEach(function (c) { o[c.key] = c.el.type === 'checkbox' ? c.el.checked : c.el.value; }); store.set(name, JSON.stringify(o)); }
+    function later() { clearTimeout(timer); timer = setTimeout(save, 300); }
+    // click covers settings changed in code, e.g. by Reset or Detect
+    root.addEventListener('change', later); root.addEventListener('input', later); root.addEventListener('click', later);
+  }
+
   function _renderPlaceholder(root, tool) {
     var head = el('div', { class: 'tool-head' });
     head.innerHTML = '<h1>' + tool.label + '</h1>';
@@ -449,7 +502,7 @@ var CK = (function () {
     theme: theme, toast: toast, copy: copy, paste: paste, download: download,
     store: store, el: el, iconSvg: iconSvg, $: $, flashVerify: flashVerify,
     pwStrength: pwStrength, attachStrength: attachStrength,
-    toHex: toHex, hexToBytes: hexToBytes, b64: b64, unb64: unb64, b64uEnc: b64uEnc, b64uDec: b64uDec,
+    share: share, rememberSettings: rememberSettings, toHex: toHex, hexToBytes: hexToBytes, b64: b64, unb64: unb64, b64uEnc: b64uEnc, b64uDec: b64uDec,
     pem: pem, unpem: unpem, rndBytes: rndBytes, randomSecret: randomSecret
   };
 })();

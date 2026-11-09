@@ -7,7 +7,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
   var STD = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var B32 = '0123456789ABCDEFGHIJKLMNOPQRSTUV';
   var B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -254,7 +254,7 @@
       if (id) { from = id; syncOpts(); convert(); ctx.toast('Detected input type: ' + labelOf(from), 'success'); }
       else ctx.toast('Could not detect the input type', 'warn');
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=number&s=' + b64uEnc(JSON.stringify({ i: from, o: outId, iw: inWidth, ow: outWidth, icb: inCustBase, ocb: outCustBase, v: inP.ta.value }))); }
+    function doShare() { CK.share('number', { i: from, o: outId, iw: inWidth, ow: outWidth, icb: inCustBase, ocb: outCustBase, v: inP.ta.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; from = 'dec'; outId = 'hex'; inWidth = 32; outWidth = 32; widthSelIn.value = '32'; widthSelOut.value = '32'; inCustBase = 3; outCustBase = 3; custInputIn.value = '3'; custInputOut.value = '3'; syncOpts(); convert(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

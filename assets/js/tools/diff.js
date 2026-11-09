@@ -5,7 +5,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
 
   // LCS diff of two token arrays -> [{t:-1|0|1, v}]
@@ -91,7 +91,7 @@
       }
       outP.ta.value = out;
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=diff&s=' + b64uEnc(JSON.stringify({ a: aP.ta.value, b: bP.ta.value, g: granSel.value, v: viewSel.value }))); }
+    function doShare() { CK.share('diff', { a: aP.ta.value, b: bP.ta.value, g: granSel.value, v: viewSel.value }); }
     function doReset() { aP.ta.value = ''; bP.ta.value = ''; outP.ta.value = ''; granSel.value = 'line'; viewSel.value = 'inline'; ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, randomSecret = CK.randomSecret;
+  var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, randomSecret = CK.randomSecret;
   var ENC = new TextEncoder();
   function concat(a, b) { var o = new Uint8Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
   function webBytes(algo, b) { return crypto.subtle.digest(algo, b).then(function (h) { return new Uint8Array(h); }); }
@@ -91,7 +91,7 @@
     hmacWrap.appendChild(hmacSwitch);
     var keyInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'HMAC key' });
     var keyFmt = ui.select([['utf8', 'UTF-8'], ['hex', 'Hexadecimal'], ['base64', 'Base64']].map(o), null, 'utf8');
-    var keyGen = ui.iconBtn(I_SHUF, 'Random HMAC key', genKey);
+    var keyGen = ui.iconBtn(I_SHUF, 'Random', genKey);
     var keyWrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     keyInput.style.flex = '1'; keyInput.style.minWidth = '0'; keyFmt.style.width = 'auto'; keyWrap.appendChild(keyInput); keyWrap.appendChild(keyFmt); keyWrap.appendChild(keyGen);
     var keyField = ui.field('HMAC key', keyWrap); keyField.style.display = 'none';
@@ -157,7 +157,7 @@
       else ctx.toast('Could not detect the hash length', 'warn');
     }
     function doSwap() { inP.ta.value = outP.ta.value; outP.ta.value = ''; clearVerify(); ctx.toast('Output moved to input', 'success'); }
-    function doShare() { var st = { a: current, inf: inFmt.value, outf: outFmt.value, hm: hmacCb.checked ? 1 : 0, kf: keyFmt.value, k: keyInput.value, in: inP.ta.value, out: outP.ta.value }; CK.copy(location.href.split('#')[0] + '#tool=hash&s=' + b64uEnc(JSON.stringify(st))); }
+    function doShare() { var st = { a: current, inf: inFmt.value, outf: outFmt.value, hm: hmacCb.checked ? 1 : 0, kf: keyFmt.value, k: keyInput.value, in: inP.ta.value, out: outP.ta.value }; CK.share('hash', st, { k: 'HMAC key' }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; keyInput.value = ''; hmacCb.checked = false; keyField.style.display = 'none'; inFmt.value = 'utf8'; outFmt.value = 'hex'; keyFmt.value = 'utf8'; clearVerify(); select('sha256'); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

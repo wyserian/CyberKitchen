@@ -4,7 +4,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes;
+  var b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes;
 
   var ENC = new TextEncoder(), DECU = new TextDecoder();
   function s2b(s) { return ENC.encode(s); }
@@ -281,8 +281,7 @@
     }
     function doShare() {
       var st = { enc: current, in: inP.ta.value, out: outP.ta.value };
-      var url = location.href.split('#')[0] + '#tool=encode&s=' + b64uEnc(JSON.stringify(st));
-      CK.copy(url);
+      CK.share('encode', st);
     }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; select('base64'); ctx.toast('Reset complete', 'success'); }
 

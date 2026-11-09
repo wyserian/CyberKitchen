@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  var b64uEnc = CK.b64uEnc, b64uDec = CK.b64uDec;
+  var b64uDec = CK.b64uDec;
 
   // Prefix / format signatures, checked first (most reliable)
   var PREFIX = [
@@ -109,7 +109,7 @@
       }
       outP.ta.value = out;
     }
-    function doShare() { CK.copy(location.href.split('#')[0] + '#tool=hashid&s=' + b64uEnc(JSON.stringify({ in: inP.ta.value }))); }
+    function doShare() { CK.share('hashid', { in: inP.ta.value }); }
     function doReset() { inP.ta.value = ''; outP.ta.value = ''; ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview - CyberKitchen</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #fff; }
+    iframe { display: block; border: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <iframe id="f" title="Preview" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
+  <script>
+    /* Host for the HTML Viewer's output, in the app or a new tab.
+       The app's Content Security Policy forbids inline scripts, and a srcdoc frame created by the
+       app would inherit that policy, so user code runs here instead: this page has no policy of
+       its own, and the code goes into a sandboxed frame with no same-origin access, so it can
+       never act as CyberKitchen. Only CyberKitchen pages (same origin) can set the content. */
+    (function () {
+      var f = document.getElementById('f'), host = window.parent !== window ? window.parent : window.opener;
+      var ORIGIN = location.origin === 'null' ? '*' : location.origin; // file:// pages have an opaque origin
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (e.origin === location.origin && d && typeof d.ckPreview === 'string') { f.srcdoc = d.ckPreview; return; }
+        // Console output from the sandboxed page is relayed up to the HTML Viewer
+        if (e.source === f.contentWindow && d && d.__ck === 'console' && host) host.postMessage(d, ORIGIN);
+      });
+      if (host) host.postMessage({ ckReady: 1 }, ORIGIN);
+    })();
+  </script>
+</body>
+</html>
