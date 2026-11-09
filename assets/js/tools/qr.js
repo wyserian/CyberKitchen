@@ -11,7 +11,6 @@
     qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']; // encode input as UTF-8
   }
 
-
   // Build the smallest QR that fits the data at the given level, or null if it does not fit
   function build(text, ecl) {
     for (var t = 1; t <= 40; t++) { try { var qr = qrcode(t, ecl); qr.addData(text); qr.make(); return qr; } catch (e) { } }
@@ -29,15 +28,14 @@
   var I_QR = '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M14 20v.01M20 20v.01M17 17v.01"/>';
   var IC_COPY = '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>';
   var IC_DL = '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
   var LEVELS = ['L', 'M', 'Q', 'H'];
 
   CK.registerTool('qr', function (root, ctx) {
     var ui = CK.ui, el = CK.el, iconSvg = CK.iconSvg, ecl = 'M', lastQR = null;
 
-    root.appendChild(ui.head('QR Code Generator', 'offline'));
+    root.appendChild(ui.head('QR Code Generator'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_QR);

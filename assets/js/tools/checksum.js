@@ -42,18 +42,17 @@
   }
 
   var I_SUM = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/><path d="m9 14 2 2 4-4"/>';
-  var I_FILE = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>';
-  var I_HASH = '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>';
+  var I_FILE = CK.ui.IC.file;
+  var I_HASH = CK.ui.IC.hash;
   var I_UPLOAD = '<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_CHECK = CK.ui.IC.check;
+  var I_RESET = CK.ui.IC.reset;
   var IC_CLEAR = '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>';
 
   CK.registerTool('checksum', function (root, ctx) {
     var ui = CK.ui, el = CK.el, iconSvg = CK.iconSvg;
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('File Checksum', 'local file'));
+    root.appendChild(ui.head('File Checksum'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SUM);
@@ -66,7 +65,7 @@
     var colL = el('div', { class: 'col' });
     var colR = el('div', { class: 'col' });
     var algoSel = ui.select(ALGOS.map(function (a) { return { value: a.id, label: a.label }; }), onAlgo, 'sha256');
-    var outFmt = ui.select([['hex', 'Hexadecimal (lower)'], ['HEX', 'Hexadecimal (UPPER)'], ['base64', 'Base64']].map(o), show, 'hex');
+    var outFmt = ui.select([['hex', 'Hexadecimal (lower)'], ['HEX', 'Hexadecimal (UPPER)'], ['base64', 'Base64']], show, 'hex');
     colL.appendChild(ui.field('Algorithm', algoSel));
     colR.appendChild(ui.field('Output format', outFmt));
     grid.appendChild(colL); grid.appendChild(colR);

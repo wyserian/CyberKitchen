@@ -24,19 +24,18 @@
   }
 
   var I_DROP = '<path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 2-6 5-10z"/>';
-  var I_HASH = '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
+  var I_HASH = CK.ui.IC.hash;
+  var I_CHECK = CK.ui.IC.check;
+  var I_DETECT = CK.ui.IC.detect;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
+  var I_SHUF = CK.ui.IC.shuffle;
 
   CK.registerTool('argon2', function (root, ctx) {
     var ui = CK.ui, el = CK.el, variant = 'id';
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Argon2', 'hash + verify'));
+    root.appendChild(ui.head('Argon2'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DROP);
@@ -58,7 +57,7 @@
     var colR = el('div', { class: 'col' });
 
     // Variant dropdown
-    var varSel = ui.select([['id', 'argon2id'], ['i', 'argon2i'], ['d', 'argon2d']].map(o), function (v) { variant = v; updateSel(); }, 'id');
+    var varSel = ui.select([['id', 'argon2id'], ['i', 'argon2i'], ['d', 'argon2d']], function (v) { variant = v; updateSel(); }, 'id');
     cfgWrap.appendChild(ui.field('Variant', varSel));
 
     var memInput = el('input', { class: 'inp sm', type: 'number', min: '256', max: '1048576', step: '256', value: '4096', placeholder: 'KiB' });
@@ -111,7 +110,7 @@
 
     colL.appendChild(cfgWrap); colL.appendChild(memWrap); colL.appendChild(parWrap); colL.appendChild(saltWrap);
 
-    var outSel = ui.select([['encoded', 'Encoded'], ['hashonly', 'Hash only'], ['json', 'JSON']].map(o), null, 'encoded');
+    var outSel = ui.select([['encoded', 'Encoded'], ['hashonly', 'Hash only'], ['json', 'JSON']], null, 'encoded');
     colR.appendChild(ui.field('Output', outSel));
 
     grid.appendChild(colL); grid.appendChild(colR);

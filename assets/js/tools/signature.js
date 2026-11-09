@@ -8,7 +8,6 @@
 (function () {
   'use strict';
   var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
-  var ENC = new TextEncoder(), DEC = new TextDecoder();
 
   /* Minimal DER helpers */
   function cat() { var n = 0, i, parts = Array.prototype.map.call(arguments, function (p) { return p instanceof Uint8Array ? p : new Uint8Array(p); }); for (i = 0; i < parts.length; i++) n += parts[i].length; var o = new Uint8Array(n), off = 0; for (i = 0; i < parts.length; i++) { o.set(parts[i], off); off += parts[i].length; } return o; }
@@ -68,18 +67,17 @@
   }
 
   var I_SIG = '<path d="M3 17c3-3 5-8 7-8s-1 7 1 7 3-4 4-4 1 3 3 3h3M3 21h18"/>';
-  var I_MSG = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_MSG = CK.ui.IC.file;
+  var I_SHUF = CK.ui.IC.shuffle;
+  var I_CHECK = CK.ui.IC.check;
+  var I_DETECT = CK.ui.IC.detect;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('signature', function (root, ctx) {
     var ui = CK.ui, el = CK.el, algo = 'P-256';
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Digital Signatures', 'Web Crypto'));
+    root.appendChild(ui.head('Digital Signatures'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SIG);
@@ -94,10 +92,10 @@
     var colL = el('div', { class: 'col2 kv-mp' });
     var colR = el('div', { class: 'col' });
     var algoSel = ui.select(ORDER.map(function (id) { return { value: id, label: ALGS[id].label }; }), function (v) { setAlgo(v); }, 'P-256');
-    var hashSel = ui.select([['SHA-256', 'SHA-256'], ['SHA-384', 'SHA-384'], ['SHA-512', 'SHA-512']].map(o), updateSel, 'SHA-256');
-    var msgFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']].map(o), null, 'utf8');
-    var sigFmt = ui.select([['base64', 'Base64'], ['base64url', 'Base64 URL-safe'], ['hex', 'Hexadecimal']].map(o), null, 'base64');
-    var encSel = ui.select([['raw', 'Raw r||s (JOSE / Web Crypto)'], ['der', 'DER (OpenSSL)']].map(o), null, 'raw');
+    var hashSel = ui.select([['SHA-256', 'SHA-256'], ['SHA-384', 'SHA-384'], ['SHA-512', 'SHA-512']], updateSel, 'SHA-256');
+    var msgFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'utf8');
+    var sigFmt = ui.select([['base64', 'Base64'], ['base64url', 'Base64 URL-safe'], ['hex', 'Hexadecimal']], null, 'base64');
+    var encSel = ui.select([['raw', 'Raw r||s (JOSE / Web Crypto)'], ['der', 'DER (OpenSSL)']], null, 'raw');
     function keyBox(labelText) {
       var ta = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: labelText + ' (PEM or JWK)' });
       ta.style.flex = '1'; ta.style.fontSize = '11px'; ta.style.minWidth = '0';
@@ -141,8 +139,8 @@
       else ui.setSel(strip, 'Ed25519', 'EdDSA', 'Edwards-curve signature (RFC 8032), 64-byte signature');
     }
     function sigAlg() { return ALGS[algo].ec ? { name: 'ECDSA', hash: hashSel.value } : { name: 'Ed25519' }; }
-    function msgBytes() { var v = inP.ta.value; if (msgFmt.value === 'hex') return hexToBytes(v); if (msgFmt.value === 'base64') return unb64(v); return ENC.encode(v); }
-    function fmtSig(b) { if (sigFmt.value === 'hex') return toHex(b); var s = b64(b); return sigFmt.value === 'base64url' ? s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : s; }
+    function msgBytes() { return CK.textBytes(inP.ta.value, msgFmt.value); }
+    function fmtSig(b) { if (sigFmt.value === 'hex') return toHex(b); return sigFmt.value === 'base64url' ? CK.b64u(b) : b64(b); }
     // Signature text -> raw bytes for Web Crypto. Tries the chosen format first,
     // then the others; for ECDSA accepts raw r||s or DER.
     function parseSig(text) {

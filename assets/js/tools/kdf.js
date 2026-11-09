@@ -7,11 +7,11 @@
 */
 (function () {
   'use strict';
-  var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, rndBytes = CK.rndBytes, unb64 = CK.unb64, b64 = CK.b64;
+  var b64uDec = CK.b64uDec, toHex = CK.toHex, rndBytes = CK.rndBytes, b64 = CK.b64;
   var ENC = new TextEncoder();
   var C = window.CryptoJS;
 
-  function inputBytes(v, fmt) { v = v || ''; if (fmt === 'hex') return hexToBytes(v); if (fmt === 'base64') return unb64(v); return ENC.encode(v); }
+  function inputBytes(v, fmt) { return CK.textBytes(v || '', fmt); }
 
   /* ---- crypto-js bridges for scrypt's internal PBKDF2-HMAC-SHA256 ---- */
   function waFromBytes(bytes) { var words = []; for (var i = 0; i < bytes.length; i++) words[i >>> 2] |= (bytes[i] & 0xff) << (24 - (i % 4) * 8); return C.lib.WordArray.create(words, bytes.length); }
@@ -68,20 +68,18 @@
       .then(function (buf) { return new Uint8Array(buf); });
   }
 
-
-  var I_KEY = '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 0 0 3M14 9l2 2"/>';
+  var I_KEY = CK.ui.IC.key;
   var I_LOCK = '<path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v10H5z"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_SHUF = CK.ui.IC.shuffle;
+  var I_CHECK = CK.ui.IC.check;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
   var ITERS = [100000, 310000, 600000];
 
   CK.registerTool('kdf', function (root, ctx) {
     var ui = CK.ui, el = CK.el, algo = 'pbkdf2';
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Key Derivation', 'PBKDF2 / scrypt'));
+    root.appendChild(ui.head('Key Derivation'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_KEY);
@@ -97,18 +95,18 @@
 
     // Parameters column (left): Algorithm, then Hash (PBKDF2) or scrypt params below it
     var paramsWrap = el('div', { class: 'col' });
-    var algoSel = ui.select([['pbkdf2', 'PBKDF2'], ['scrypt', 'scrypt']].map(o), function (v) { algo = v; applyAlgo(); updateSel(); }, 'pbkdf2');
+    var algoSel = ui.select([['pbkdf2', 'PBKDF2'], ['scrypt', 'scrypt']], function (v) { algo = v; applyAlgo(); updateSel(); }, 'pbkdf2');
     paramsWrap.appendChild(ui.field('Algorithm', algoSel));
 
     // Hash (PBKDF2) directly below Algorithm
-    var hashSel = ui.select([['SHA-256', 'SHA-256'], ['SHA-512', 'SHA-512'], ['SHA-384', 'SHA-384'], ['SHA-1', 'SHA-1']].map(o), function () { updateSel(); }, 'SHA-256');
+    var hashSel = ui.select([['SHA-256', 'SHA-256'], ['SHA-512', 'SHA-512'], ['SHA-384', 'SHA-384'], ['SHA-1', 'SHA-1']], function () { updateSel(); }, 'SHA-256');
     var hashField = ui.field('Hash', hashSel);
     paramsWrap.appendChild(hashField);
 
     // scrypt params (shown below Algorithm in place of Hash)
     var scWrap = el('div', { class: 'col' }); scWrap.style.display = 'none';
     var scRow = el('div', { style: 'display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;' });
-    var nSel = ui.select([['14', '16384 (2^14)'], ['15', '32768 (2^15)'], ['16', '65536 (2^16)'], ['12', '4096 (2^12)'], ['10', '1024 (2^10)']].map(o), function () { updateSel(); }, '14'); nSel.style.width = 'auto';
+    var nSel = ui.select([['14', '16384 (2^14)'], ['15', '32768 (2^15)'], ['16', '65536 (2^16)'], ['12', '4096 (2^12)'], ['10', '1024 (2^10)']], function () { updateSel(); }, '14'); nSel.style.width = 'auto';
     var rInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '32', value: '8' }); rInput.style.width = '64px';
     var pInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '16', value: '1' }); pInput.style.width = '64px';
     rInput.addEventListener('input', updateSel); pInput.addEventListener('input', updateSel);
@@ -119,7 +117,7 @@
     // Salt column (right): Salt, then Iterations (PBKDF2) below it
     var saltWrap = el('div', { class: 'col' });
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Salt' });
-    var saltFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']].map(o), null, 'base64');
+    var saltFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']], null, 'base64');
     var saltGen = ui.iconBtn(I_SHUF, 'Random', function () { saltInput.value = saltFmt.value === 'hex' ? toHex(rndBytes(16)) : saltFmt.value === 'utf8' ? toHex(rndBytes(16)) : b64(rndBytes(16)); if (saltFmt.value === 'utf8') saltFmt.value = 'hex'; });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltFmt.style.width = 'auto';
@@ -141,7 +139,7 @@
     var lenInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '1024', value: '32' }); lenInput.style.width = '90px';
     lenInput.addEventListener('input', updateSel);
     colR.appendChild(ui.field('Output length (bytes)', lenInput));
-    var outFmt = ui.select([['hex', 'Hexadecimal'], ['base64', 'Base64']].map(o), null, 'hex');
+    var outFmt = ui.select([['hex', 'Hexadecimal'], ['base64', 'Base64']], null, 'hex');
     colR.appendChild(ui.field('Output format', outFmt));
 
     grid.appendChild(colL); grid.appendChild(colR);

@@ -9,14 +9,11 @@
   var ENC = new TextEncoder(), DECU = new TextDecoder();
   function s2b(s) { return ENC.encode(s); }
   function b2s(b) { return DECU.decode(b instanceof Uint8Array ? b : new Uint8Array(b)); }
-  function bytesToHex(b) {
-    b = b instanceof Uint8Array ? b : new Uint8Array(b);
-    var r = ''; for (var i = 0; i < b.length; i++) r += b[i].toString(16).padStart(2, '0'); return r;
-  }
+  var bytesToHex = CK.toHex;
 
   /* Base64 (UTF-8 safe) */
-  function b64enc(s) { var b = s2b(s), bin = ''; for (var i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]); return btoa(bin); }
-  function b64dec(s) { s = s.replace(/\s/g, ''); var bin = atob(s), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return b2s(a); }
+  function b64enc(s) { return CK.b64(s2b(s)); }
+  function b64dec(s) { return b2s(CK.unb64(s)); }
 
   /* Base32 RFC 4648 */
   var B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -131,14 +128,14 @@
   function jsDec(s) { try { return JSON.parse('"' + s.replace(/"/g, '\\"') + '"'); } catch (e) { return s; } }
   function jwtDec(s) {
     var p = s.trim().split('.'); if (p.length < 2) throw new Error('Not a valid JWT');
-    function dp(x) { x = x.replace(/-/g, '+').replace(/_/g, '/'); while (x.length % 4) x += '='; try { return JSON.stringify(JSON.parse(atob(x)), null, 2); } catch (e) { return atob(x); } }
+    function dp(x) { var t = b64uDec(x); try { return JSON.stringify(JSON.parse(t), null, 2); } catch (e) { return t; } }
     return 'Header:\n' + dp(p[0]) + '\n\nPayload:\n' + dp(p[1]) + (p[2] ? '\n\nSignature:\n' + p[2] : '');
   }
   function jwtEnc(s) {
-    var h = function (o) { return btoa(JSON.stringify(o)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_'); };
+    var h = function (o) { return CK.b64uEnc(JSON.stringify(o)); };
     var hdr = h({ alg: 'none', typ: 'JWT' });
     try { return hdr + '.' + h(JSON.parse(s)) + '.'; }
-    catch (e) { return hdr + '.' + b64enc(s).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_') + '.'; }
+    catch (e) { return hdr + '.' + CK.b64uEnc(s) + '.'; }
   }
 
   /* Text ciphers */
@@ -162,7 +159,7 @@
   /* Encoding registry */
   var LIST = [
     { id: 'base64', label: 'Base64', group: 'Bases', badge: 'RFC4648', desc: 'Standard RFC 4648 Base64', enc: b64enc, dec: b64dec },
-    { id: 'base64url', label: 'Base64URL', group: 'Bases', badge: 'RFC4648', desc: 'URL-safe Base64 (no + / =)', enc: function (s) { return b64enc(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }, dec: function (s) { s = s.trim().replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return b64dec(s); } },
+    { id: 'base64url', label: 'Base64URL', group: 'Bases', badge: 'RFC4648', desc: 'URL-safe Base64 (no + / =)', enc: CK.b64uEnc, dec: b64dec },
     { id: 'base32', label: 'Base32', group: 'Bases', badge: 'RFC4648', desc: 'Base32 (A-Z 2-7)', enc: base32enc, dec: base32dec },
     { id: 'base58', label: 'Base58', group: 'Bases', badge: 'BTC', desc: 'Base58 (Bitcoin alphabet)', enc: base58enc, dec: base58dec },
     { id: 'base62', label: 'Base62', group: 'Bases', badge: 'Base62', desc: 'Base62 alphanumeric', enc: base62enc, dec: base62dec },
@@ -216,18 +213,18 @@
 
   /* Share-URL state (base64url of JSON) */
 
-  var I_FILE = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>';
+  var I_FILE = CK.ui.IC.file;
   var I_CODE = '<path d="M7 7 3 12l4 5M17 7l4 5-4 5M14 4l-4 16"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_CHECK = CK.ui.IC.check;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_DETECT = CK.ui.IC.detect;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('encode', function (root, ctx) {
     var ui = CK.ui, current = 'base64';
 
-    root.appendChild(ui.head('Encoder / Decoder', LIST.length + ' types'));
+    root.appendChild(ui.head('Encoder / Decoder'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CODE);

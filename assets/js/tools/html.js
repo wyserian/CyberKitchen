@@ -48,7 +48,6 @@
       '</body>\n</html>';
   }
 
-
   var I_HTML = '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9.5 13l-2 2 2 2M14.5 13l2 2-2 2"/>';
   var I_CODE = '<path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/>';
   var I_EYE = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
@@ -57,8 +56,8 @@
   var I_NEW = '<path d="M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>';
   var IC_CLEAR = '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>';
   var IC_DL = '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   var LANGS = [
     { id: 'html', label: 'HTML', placeholder: '<!-- HTML markup -->', file: 'index.html' },
@@ -69,7 +68,7 @@
   CK.registerTool('html', function (root, ctx) {
     var ui = CK.ui, el = CK.el, iconSvg = CK.iconSvg;
 
-    root.appendChild(ui.head('HTML Viewer', 'live'));
+    root.appendChild(ui.head('HTML Viewer'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_HTML);

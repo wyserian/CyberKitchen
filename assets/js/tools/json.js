@@ -7,7 +7,6 @@
   'use strict';
   var b64uDec = CK.b64uDec;
 
-
   function sortDeep(v) {
     if (Array.isArray(v)) return v.map(sortDeep);
     if (v && typeof v === 'object') { var o = {}; Object.keys(v).sort().forEach(function (k) { o[k] = sortDeep(v[k]); }); return o; }
@@ -59,17 +58,16 @@
   }
 
   var I_JSON = '<path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/>';
-  var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
+  var I_OUT = CK.ui.IC.out;
+  var I_CHECK = CK.ui.IC.check;
   var I_TREE = '<rect x="3" y="3" width="6" height="4" rx="1"/><rect x="15" y="10" width="6" height="4" rx="1"/><rect x="15" y="17" width="6" height="4" rx="1"/><path d="M6 7v9a2 2 0 0 0 2 2h7M6 12h9"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('json', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('JSON Toolkit', 'format / query'));
+    root.appendChild(ui.head('JSON Toolkit'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_JSON);
@@ -84,7 +82,7 @@
     var grid = el('div', { class: 'cfg-grid wide-left' });
     var colL = el('div', { class: 'col2' });
     var colR = el('div', { class: 'col' });
-    var indentSel = ui.select([['2', '2 spaces'], ['4', '4 spaces'], ['tab', 'Tab']].map(o), null, '2');
+    var indentSel = ui.select([['2', '2 spaces'], ['4', '4 spaces'], ['tab', 'Tab']], null, '2');
     var sortCb = el('input', { type: 'checkbox' });
     var sortSwitch = el('label', { class: 'switch' }); sortSwitch.appendChild(sortCb); sortSwitch.appendChild(el('span', { class: 'track' })); sortSwitch.appendChild(el('span', {}, 'Sort keys'));
     colL.appendChild(ui.field('Indent', indentSel)); colL.appendChild(ui.field('Options', sortSwitch));

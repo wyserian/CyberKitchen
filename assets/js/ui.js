@@ -7,11 +7,22 @@ CK.ui = (function () {
   'use strict';
   var el = CK.el, iconSvg = CK.iconSvg;
 
+  // Icons (inner SVG paths) shared by the panels and by tools' action buttons
   var IC = {
     copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
     paste: '<rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>',
     clear: '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>',
-    download: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'
+    download: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+    reset: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>',
+    share: '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+    swap: '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    shuffle: '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>',
+    detect: '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>',
+    out: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+    hash: '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>',
+    file: '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>',
+    key: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 0 0 3M14 9l2 2"/>'
   };
 
   function head(label) {
@@ -204,10 +215,11 @@ CK.ui = (function () {
     return f;
   }
 
-  /* <select> from [{value,label}] (or ['a','b']); onChange(value) */
+  /* <select> from [{value,label}], [[value,label]] or ['a','b']; onChange(value) */
   function select(items, onChange, current) {
     var s = el('select', { class: 'inp' });
     items.forEach(function (it) {
+      if (Array.isArray(it)) it = { value: it[0], label: it[1] };
       var v = it.value != null ? it.value : it, t = it.label != null ? it.label : it;
       var o = el('option'); o.value = v; o.textContent = t; s.appendChild(o);
     });
@@ -226,7 +238,7 @@ CK.ui = (function () {
   }
 
   return {
-    head: head, iconBtn: iconBtn,
+    IC: IC, head: head, iconBtn: iconBtn,
     selStrip: selStrip, setSel: setSel, picker: picker,
     textPanel: textPanel, ioRow: ioRow, configPanel: configPanel, field: field,
     select: select, toggle: toggle

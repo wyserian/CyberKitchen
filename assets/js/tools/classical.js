@@ -116,16 +116,16 @@
 
   var I_SCROLL = '<path d="M4 7V5h16v2M9 20h6M12 5v15"/>';
   var I_LOCK = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
+  var I_RESET = CK.ui.IC.reset;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_CHECK = CK.ui.IC.check;
+  var I_DETECT = CK.ui.IC.detect;
+  var I_SHARE = CK.ui.IC.share;
 
   CK.registerTool('classical', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'caesar';
 
-    root.appendChild(ui.head('Classical Ciphers', LIST.length + ' ciphers'));
+    root.appendChild(ui.head('Classical Ciphers'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SCROLL);

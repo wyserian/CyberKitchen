@@ -15,7 +15,7 @@
     for (var i = 0; i < 4; i++) if (o[i] > 255) return null;
     return ((o[0] << 24) | (o[1] << 16) | (o[2] << 8) | o[3]) >>> 0;
   }
-  function ipStr(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
+  var ipStr = CK.ipStr;
   function maskFromPrefix(p) { return p === 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0; }
   function prefixFromMask(n) { n = n >>> 0; var c = 0; for (var i = 31; i >= 0; i--) { if (n & (1 << i)) c++; else break; } return c; }
   function isContiguousMask(n) { n = n >>> 0; var seenZero = false; for (var i = 31; i >= 0; i--) { if (n & (1 << i)) { if (seenZero) return false; } else seenZero = true; } return true; }
@@ -37,16 +37,15 @@
     return 'Public';
   }
 
-
   var I_NET = '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/>';
-  var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_OUT = CK.ui.IC.out;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('cidr', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
 
-    root.appendChild(ui.head('CIDR / Subnet Calculator', 'IPv4'));
+    root.appendChild(ui.head('CIDR / Subnet Calculator'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_NET);

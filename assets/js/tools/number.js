@@ -94,17 +94,16 @@
 
   var I_HASH = '<path d="M6 4v16M6 4h4a3 3 0 0 1 0 6H6M14 4h4v6h-4zM14 14h4v6h-4z"/>';
   var I_OUT = '<path d="M7 7 3 12l4 5M17 7l4 5-4 5M14 4l-4 16"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_CHECK = CK.ui.IC.check;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_DETECT = CK.ui.IC.detect;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('number', function (root, ctx) {
     var ui = CK.ui, el = CK.el, from = 'dec', outId = 'hex', inWidth = 32, outWidth = 32, inCustBase = 3, outCustBase = 3;
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Number Converter', BASES.length + ' bases'));
+    root.appendChild(ui.head('Number Converter'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_HASH);
@@ -143,7 +142,7 @@
     cfg.appendChild(grid);
 
     // Extra params live under their own section: input params under INPUT, output params under OUTPUT
-    function mkWidth(cb) { return ui.select([['8', '8-bit'], ['16', '16-bit'], ['32', '32-bit'], ['64', '64-bit']].map(o), cb, '32'); }
+    function mkWidth(cb) { return ui.select([['8', '8-bit'], ['16', '16-bit'], ['32', '32-bit'], ['64', '64-bit']], cb, '32'); }
     var inForm = el('div', { class: 'cfg-form', style: 'padding:10px 0 0;' });
     var widthSelIn = mkWidth(function (v) { inWidth = +v; convert(); });
     var widthFieldIn = ui.field('Bit width', widthSelIn); widthFieldIn.style.display = 'none';

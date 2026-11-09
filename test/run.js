@@ -63,7 +63,7 @@ var toasts = [];
 CK.toast = function (m, t) { toasts.push((t || 'success') + ': ' + m); };
 var mounts = {};
 CK.registerTool = function (id, fn) { mounts[id] = fn; };
-['hash', 'checksum', 'jwt', 'text', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
+['hash', 'checksum', 'jwt', 'text', 'encode', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
 
 function all(n, out) { out = out || []; out.push(n); n.children.forEach(function (c) { all(c, out); }); return out; }
 function mount(id) {
@@ -98,6 +98,20 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   var cnt = new Array(127).fill(0); CK.randomSecret(94000, 'utf8').split('').forEach(function (ch) { cnt[ch.charCodeAt(0)]++; });
   var lo = cnt.slice(33, 101).reduce(function (a, b) { return a + b; }) / 68, hi = cnt.slice(101, 127).reduce(function (a, b) { return a + b; }) / 26;
   ok(lo / hi < 1.1, 'randomSecret: characters are evenly distributed (ratio ' + (lo / hi).toFixed(2) + ')');
+
+  ok(CK.b64u([251, 255, 255]) === '-___' && hex(CK.textBytes('6869', 'hex')) === '6869' && hex(CK.textBytes('aGk=', 'base64')) === '6869' && hex(CK.textBytes('hi', 'utf8')) === '6869', 'b64u and textBytes formats');
+  ok(CK.detectFmt('deadbeef') === 'hex' && CK.detectFmt('aGVsbG8=') === 'base64' && CK.detectFmt('hello!') === 'utf8' && CK.fmtByteLen('aGVsbG8=', 'base64') === 5, 'detectFmt and fmtByteLen');
+  ok(CK.ipStr(0xC0A80001) === '192.168.0.1' && [0, 0, 0, 0, 0].every(function () { var r = CK.randInt(7); return r >= 0 && r < 7 && r === Math.floor(r); }), 'ipStr and randInt');
+
+  /* Encoder: Base64URL and JWT go through the shared helpers */
+  var E = mount('encode'), U = 'hüllö ✓ ??>';
+  set(E.field('Bases'), 'base64url'); set(E.tas[0], U); E.prim('Encode').fire('click');
+  ok(E.tas[1].value === CK.b64uEnc(U) && !/[+/=]/.test(E.tas[1].value), 'encode: Base64URL has no + / =');
+  set(E.tas[0], E.tas[1].value); E.prim('Decode').fire('click');
+  ok(E.tas[1].value === U, 'encode: Base64URL round-trips Unicode');
+  set(E.field('Web'), 'jwt'); set(E.tas[0], '{"name":"Jürgen"}'); E.prim('Encode').fire('click');
+  set(E.tas[0], E.tas[1].value); E.prim('Decode').fire('click');
+  ok(/"name": "Jürgen"/.test(E.tas[1].value) && /"alg": "none"/.test(E.tas[1].value), 'encode: JWT decode reads UTF-8 payloads');
 
   /* Hash: invalid hex is an error, not a hash of nothing */
   var H = mount('hash');
@@ -293,9 +307,10 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   set(T.field('Digits'), '8'); await until(function () { return T.tas[1].value.length === 8; });
   ok(T.tas[1].value === '94287082', 'totp: RFC 6238 at t=59');
   set(T.field('Mode'), 'hotp'); set(T.field('Digits'), '6');
-  var hotp = [];
-  for (var n = 0; n < 3; n++) { set(T.field('Counter'), String(n)); await until(function () { return T.tas[1].value.length === 6; }); await sleep(30); hotp.push(T.tas[1].value); }
-  ok(hotp.join(',') === '755224,287082,359152', 'hotp: RFC 4226 counters 0-2');
+  // Codes are computed asynchronously, so wait for the expected one (a wrong code times out and fails)
+  var want = ['755224', '287082', '359152'], hotp = [];
+  for (var n = 0; n < 3; n++) { set(T.field('Counter'), String(n)); await until(function () { return T.tas[1].value === want[n]; }); hotp.push(T.tas[1].value); }
+  ok(hotp.join(',') === want.join(','), 'hotp: RFC 4226 counters 0-2');
   Date.now = realNow;
 
   /* Ed25519 RFC 8032 test 2 (deterministic) and ECDSA P-256 DER checked by Node */

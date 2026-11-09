@@ -123,16 +123,15 @@
     return r;
   }
 
-
   var I_CERT = '<rect x="4" y="3" width="16" height="13" rx="2"/><circle cx="12" cy="8" r="2.5"/><path d="M9.5 14l-1 6 3.5-2 3.5 2-1-6"/>';
-  var I_FILE = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_FILE = CK.ui.IC.file;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('x509', function (root, ctx) {
     var ui = CK.ui;
 
-    root.appendChild(ui.head('X.509 Certificate Decoder', 'ASN.1'));
+    root.appendChild(ui.head('X.509 Certificate Decoder'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CERT);

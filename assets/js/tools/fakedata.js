@@ -6,7 +6,7 @@
 (function () {
   'use strict';
   var b64uDec = CK.b64uDec;
-  function randInt(max) { var limit = Math.floor(0x100000000 / max) * max, a = new Uint32Array(1); do { crypto.getRandomValues(a); } while (a[0] >= limit); return a[0] % max; }
+  var randInt = CK.randInt;
   function pick(a) { return a[randInt(a.length)]; }
   function digits(n) { var s = ''; for (var i = 0; i < n; i++) s += randInt(10); return s; }
   function hex(n) { var s = '', h = '0123456789abcdef'; for (var i = 0; i < n; i++) s += h[randInt(16)]; return s; }
@@ -34,13 +34,13 @@
   var PHONE_CODE = { us: '+1', uk: '+44', de: '+49', fr: '+33', jp: '+81', au: '+61', in: '+91', br: '+55' };
 
   var I_USER = '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('fakedata', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'name';
 
-    root.appendChild(ui.head('Fake Data', 'generator'));
+    root.appendChild(ui.head('Fake Data'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_USER);

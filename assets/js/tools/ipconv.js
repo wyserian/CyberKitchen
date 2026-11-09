@@ -8,7 +8,7 @@
   'use strict';
   var b64uDec = CK.b64uDec;
 
-  function ipStr(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
+  var ipStr = CK.ipStr;
   function parseDotted(s) {
     var m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s.trim());
     if (!m) return null;
@@ -37,17 +37,15 @@
   }
   function binOctets(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].map(function (x) { return x.toString(2).padStart(8, '0'); }).join('.'); }
 
-
   var I_GLOBE = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>';
-  var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_OUT = CK.ui.IC.out;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('ipconv', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('IP Converter', 'IPv4'));
+    root.appendChild(ui.head('IP Converter'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_GLOBE);
@@ -59,7 +57,7 @@
     var grid = el('div', { class: 'cfg-grid wide-left' });
     var colL = el('div', { class: 'col' });
     var colR = el('div', { class: 'col' });
-    var fmtSel = ui.select([['auto', 'Auto-detect'], ['dotted', 'Dotted decimal'], ['integer', 'Integer'], ['hex', 'Hexadecimal'], ['binary', 'Binary']].map(o), run, 'auto');
+    var fmtSel = ui.select([['auto', 'Auto-detect'], ['dotted', 'Dotted decimal'], ['integer', 'Integer'], ['hex', 'Hexadecimal'], ['binary', 'Binary']], run, 'auto');
     colR.appendChild(ui.field('Input format', fmtSel));
     grid.appendChild(colL); grid.appendChild(colR);
     cfg.appendChild(grid);

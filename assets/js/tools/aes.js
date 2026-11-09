@@ -22,33 +22,21 @@
   var MODES = { CBC: C.mode.CBC, ECB: C.mode.ECB, CFB: C.mode.CFB, OFB: C.mode.OFB, CTR: C.mode.CTR };
   var PADS = { Pkcs7: C.pad.Pkcs7, ZeroPadding: C.pad.ZeroPadding, Iso10126: C.pad.Iso10126, AnsiX923: C.pad.Ansix923, NoPadding: C.pad.NoPadding };
 
-  var I_KEY = '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 0 0 3M14 9l2 2"/>';
+  var I_KEY = CK.ui.IC.key;
   var I_LOCK = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
+  var I_SHUF = CK.ui.IC.shuffle;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
+  var I_CHECK = CK.ui.IC.check;
+  var I_DETECT = CK.ui.IC.detect;
 
-  function detectFmt(s) {
-    var c = s.trim(), clean = c.replace(/\s/g, '');
-    if (/^[0-9a-fA-F\s]+$/.test(c) && clean.length % 2 === 0 && clean.length >= 2) return 'hex';
-    if (/^[A-Za-z0-9+/=\s]+$/.test(c) && clean.length % 4 === 0 && clean.length >= 4) { try { atob(clean); return 'base64'; } catch (e) { } }
-    return 'utf8';
-  }
-  function fmtByteLen(s, fmt) {
-    if (fmt === 'hex') return s.replace(/[^0-9a-fA-F]/g, '').length / 2;
-    if (fmt === 'base64') { try { return atob(s.trim().replace(/\s/g, '')).length; } catch (e) { return null; } }
-    return new TextEncoder().encode(s).length;
-  }
-  function fmtLabelOf(fmt) { return fmt === 'hex' ? 'Hexadecimal' : fmt === 'base64' ? 'Base64' : 'UTF-8'; }
-
+  var detectFmt = CK.detectFmt, fmtByteLen = CK.fmtByteLen, fmtLabelOf = CK.fmtLabel;
 
   CK.registerTool('aes', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
 
-    root.appendChild(ui.head('AES Encrypt / Decrypt', 'crypto-js'));
+    root.appendChild(ui.head('AES Encrypt / Decrypt'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_KEY);
@@ -60,7 +48,6 @@
     cfg.appendChild(strip.strip);
 
     function fmtOpt(v) { return { value: v, label: v === 'utf8' ? 'UTF-8' : v === 'hex' ? 'Hexadecimal' : 'Base64' }; }
-    function o(a) { return { value: a[0], label: a[1] }; }
 
     // Main grid: left column is a 2x2 sub-grid (Key/Mode over IV/Padding); right column is the formats
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -81,11 +68,11 @@
     ivInput.style.flex = '1'; ivFmt.style.width = 'auto'; ivWrap.appendChild(ivInput); ivWrap.appendChild(ivFmt); ivWrap.appendChild(ivGen);
     var ivField = ui.field('Initialization Vector', ivWrap);
 
-    var modeSel = ui.select([['CBC', 'Cipher Block Chaining'], ['ECB', 'Electronic Codebook'], ['CFB', 'Cipher Feedback'], ['OFB', 'Output Feedback'], ['CTR', 'Counter']].map(o), function () { updateSel(); }, 'CBC');
-    var padSel = ui.select([['Pkcs7', 'PKCS#7'], ['ZeroPadding', 'Zero padding'], ['Iso10126', 'ISO 10126'], ['AnsiX923', 'ANSI X9.23'], ['NoPadding', 'No padding']].map(o), null, 'Pkcs7');
+    var modeSel = ui.select([['CBC', 'Cipher Block Chaining'], ['ECB', 'Electronic Codebook'], ['CFB', 'Cipher Feedback'], ['OFB', 'Output Feedback'], ['CTR', 'Counter']], function () { updateSel(); }, 'CBC');
+    var padSel = ui.select([['Pkcs7', 'PKCS#7'], ['ZeroPadding', 'Zero padding'], ['Iso10126', 'ISO 10126'], ['AnsiX923', 'ANSI X9.23'], ['NoPadding', 'No padding']], null, 'Pkcs7');
     var padF = ui.field('Padding', padSel);
-    var ptFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']].map(o), null, 'utf8');
-    var ctFmt = ui.select([['utf8', 'Plain text'], ['base64', 'Base64'], ['hex', 'Hexadecimal']].map(o), null, 'utf8');
+    var ptFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'utf8');
+    var ctFmt = ui.select([['utf8', 'Plain text'], ['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'utf8');
     // Left sub-grid, row-flow order: Key, Mode (row 1), IV, Padding (row 2)
     colL.appendChild(keyField); colL.appendChild(ui.field('Mode', modeSel));
     colL.appendChild(ivField); colL.appendChild(padF);

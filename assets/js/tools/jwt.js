@@ -8,14 +8,9 @@
 */
 (function () {
   'use strict';
-  var b64uDec = CK.b64uDec, hexToBytes = CK.hexToBytes, pem = CK.pem, unpem = CK.unpem, randomSecret = CK.randomSecret, unb64 = CK.unb64;
-  var ENC = new TextEncoder(), DEC = new TextDecoder();
-  function b64uBytes(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function b64uStr(str) { return b64uBytes(ENC.encode(str)); }
-  function unb64u(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin = atob(str), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
-  function unb64uText(str) { return DEC.decode(unb64u(str)); }
-
-
+  var b64uDec = CK.b64uDec, pem = CK.pem, unpem = CK.unpem, randomSecret = CK.randomSecret, unb64 = CK.unb64;
+  var ENC = new TextEncoder();
+  var b64uBytes = CK.b64u, b64uStr = CK.b64uEnc, unb64u = unb64, unb64uText = b64uDec;
 
   var HASH = { HS256: 'SHA-256', HS384: 'SHA-384', HS512: 'SHA-512' };
   // Public-key algorithms. Web Crypto's ECDSA output is raw r||s, exactly the JWS format.
@@ -38,7 +33,7 @@
     return crypto.subtle.importKey(usage === 'sign' ? 'pkcs8' : 'spki', unpem(text), ASYM[a].key, false, [usage]);
   }
 
-  function secretBytes(v, fmt) { if (fmt === 'hex') return hexToBytes(v); if (fmt === 'base64') return unb64(v); return ENC.encode(v); }
+  var secretBytes = CK.textBytes;
 
   // signingInput -> Promise<base64url signature>
   function sign(algo, signingInput, keyState) { return Promise.resolve().then(function () {
@@ -66,13 +61,12 @@
   }); }
 
   var I_TOKEN = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>';
-  var I_CODE = '<path d="M7 7 3 12l4 5M17 7l4 5-4 5M14 4l-4 16"/>';
   var I_JSON = '<path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
+  var I_CHECK = CK.ui.IC.check;
+  var I_SHUF = CK.ui.IC.shuffle;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
+  var I_SWAP = CK.ui.IC.swap;
   var I_NEW = '<path d="M12 5v14M5 12h14"/>';
 
   // { header:{...}, payload:{...} } as produced by Edit / New token
@@ -92,12 +86,10 @@
     return ka.every(function (k) { return Object.prototype.hasOwnProperty.call(b, k) && sameJson(a[k], b[k]); });
   }
 
-
   CK.registerTool('jwt', function (root, ctx) {
     var ui = CK.ui, el = CK.el, algo = 'HS256';
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('JSON Web Token', 'sign + verify + edit'));
+    root.appendChild(ui.head('JSON Web Token'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_TOKEN);
@@ -112,12 +104,12 @@
     var colL = el('div', { class: 'col' });
     var colR = el('div', { class: 'col' });
 
-    var algoSel = ui.select([['HS256', 'HS256 (HMAC SHA-256)'], ['HS384', 'HS384 (HMAC SHA-384)'], ['HS512', 'HS512 (HMAC SHA-512)'], ['RS256', 'RS256 (RSA SHA-256)'], ['ES256', 'ES256 (ECDSA P-256)'], ['ES384', 'ES384 (ECDSA P-384)'], ['EdDSA', 'EdDSA (Ed25519)'], ['none', 'none (unsigned)']].map(o), function (v) { algo = v; applyAlgo(); updateSel(); }, 'HS256');
+    var algoSel = ui.select([['HS256', 'HS256 (HMAC SHA-256)'], ['HS384', 'HS384 (HMAC SHA-384)'], ['HS512', 'HS512 (HMAC SHA-512)'], ['RS256', 'RS256 (RSA SHA-256)'], ['ES256', 'ES256 (ECDSA P-256)'], ['ES384', 'ES384 (ECDSA P-384)'], ['EdDSA', 'EdDSA (Ed25519)'], ['none', 'none (unsigned)']], function (v) { algo = v; applyAlgo(); updateSel(); }, 'HS256');
     colR.appendChild(ui.field('Algorithm', algoSel));
 
     // HMAC secret (HS*)
     var secretInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'HMAC secret' });
-    var secretFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']].map(o), null, 'utf8');
+    var secretFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'utf8');
     var secretGen = ui.iconBtn(I_SHUF, 'Random', function () { secretInput.value = randomSecret(32, secretFmt.value); });
     var secretWrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     secretInput.style.flex = '1'; secretInput.style.minWidth = '0'; secretFmt.style.width = 'auto';

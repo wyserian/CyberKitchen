@@ -14,7 +14,7 @@
   var LEET = { a: '@', e: '3', i: '1', o: '0', s: '$', t: '7', A: '@', E: '3', I: '1', O: '0', S: '$', T: '7' };
   var WORDS = 'able acid aged also area army away baby back ball band bank base bath bear beat been beer bell belt best bird blue boat body bone book born both bowl bulk burn bush busy calm came camp card care cart case cash cell chip city clay coal coat code cold cook cool cope copy core corn cost crew crop dark data date dawn days dead deal dean dear debt deep deer disk done door dose down draw drew drop drug dual duke dust duty each earn ease east easy edge fair fall farm fast fate fear feed feel feet fell felt file fill film find fine fire fish five flag flat flow food foot ford form fort four free frog fuel full fund gain game gate gave gear gene gift girl give glad goal goat gold golf gone good gray grew grey grow gulf hair half hall hand hang hard harm hate have head heat held hell help herb hero high hill hint hire hold hole holy home hope host hour huge hunt idea inch iron item jack jane jazz join jump jury keen keep kept kick kill kind king knee knew know lace lack lady laid lake land lane last late lawn lazy lead leaf lean leap left lend lens less life lift like limb lime line link lion list live load loan lock long look loop lord lose loss lost love luck lung made mail main make male mall many mark mask mass mate math meal mean meat meet mega melt menu mere mesh mild mile milk mill mind mine mint miss mode mood moon more moss most move much must myth name navy near neat neck need news next nice node none noon norm nose note noun oath obey odds okay once only open oral oval oven over pace pack page paid pain pair palm park part pass past path peak pear peer pile pill pine pink pipe plan play plot plug plus poem poet poll polo pond pool poor pope port pose post pour pray prey pull pump pure push quiz race rack rage raid rail rain rank rare rate read real reap rear rely rent rest rice rich ride ring riot rise risk road rock role roll roof room root rope rose ruby rule rush rust safe sage said sail salt same sand save scan seal seat seed seek seen self sell send sent ship shoe shop shot show sick side sign silk sing sink site size skin slip slot slow snap snow soap sock soda soft soil sold sole solo some song soon sort soul soup sour spin spot star stay stem step stir stop such suit sung sure surf swap swim tail take tale talk tall tank tape task team tear tell tend tent term test text than that them then they thin this tide tidy tied ties tile till time tiny toll tone tool torn tour town trap tray tree trim trip true tube tune turn twin type unit upon urge used user vary vast very vice view vine visa void vote wage wait wake walk wall want ward ware warm warn wash wave ways weak wear week weed well went were west what when whom wide wife wild will wind wine wing wire wise wish with wolf wood wool word wore work yard yarn yeah year yoga zero zone zoom'.split(' ');
 
-  function randInt(max) { var limit = Math.floor(0x100000000 / max) * max, a = new Uint32Array(1); do { crypto.getRandomValues(a); } while (a[0] >= limit); return a[0] % max; }
+  var randInt = CK.randInt;
   function pick(arr) { return arr[randInt(arr.length)]; }
   function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = randInt(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function leetify(s) { return s.split('').map(function (c) { return LEET[c] || c; }).join(''); }
@@ -22,13 +22,13 @@
   var PRESETS = { pci: { len: 12, sets: ['upper', 'lower', 'digits', 'symbols'] }, nist: { len: 16, sets: ['upper', 'lower', 'digits', 'symbols'] }, hipaa: { len: 12, sets: ['upper', 'lower', 'digits', 'symbols'] }, owasp: { len: 14, sets: ['upper', 'lower', 'digits', 'symbols'] } };
 
   var I_DICE = '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('password', function (root, ctx) {
     var ui = CK.ui, el = CK.el, mode = 'custom';
 
-    root.appendChild(ui.head('Password Generator', 'secure'));
+    root.appendChild(ui.head('Password Generator'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DICE);

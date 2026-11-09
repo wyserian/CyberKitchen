@@ -72,15 +72,14 @@
   }
 
   var I_SEARCH = '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>';
-  var I_HASH = '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-
+  var I_HASH = CK.ui.IC.hash;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('hashid', function (root, ctx) {
     var ui = CK.ui;
 
-    root.appendChild(ui.head('Hash Identifier', 'best-effort'));
+    root.appendChild(ui.head('Hash Identifier'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SEARCH);

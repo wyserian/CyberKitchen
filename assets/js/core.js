@@ -22,7 +22,6 @@ var CK = (function () {
   };
 
   /* DOM helpers */
-  function $(sel, root) { return (root || document).querySelector(sel); }
   function iconSvg(inner, size) {
     size = size || 15;
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" ' +
@@ -52,12 +51,33 @@ var CK = (function () {
   function b64(bytes) { bytes = new Uint8Array(bytes); var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
   // Base64 or Base64URL text -> bytes (whitespace ignored); throws on invalid input
   function unb64(str) { str = String(str).replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var bin; try { bin = atob(str); } catch (e) { throw new Error('Invalid Base64'); } var a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
-  // UTF-8 text <-> unpadded Base64URL, for #tool=...&s= share links
-  function b64uEnc(str) { return b64(new TextEncoder().encode(str)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  // Bytes -> unpadded Base64URL
+  function b64u(bytes) { return b64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  // UTF-8 text <-> unpadded Base64URL (share links, JWT parts)
+  function b64uEnc(str) { return b64u(new TextEncoder().encode(str)); }
   function b64uDec(str) { return new TextDecoder().decode(unb64(str)); }
   function pem(label, buf) { return '-----BEGIN ' + label + '-----\n' + b64(buf).replace(/(.{64})/g, '$1\n').trim() + '\n-----END ' + label + '-----'; }
   function unpem(str) { return unb64(String(str).replace(/-----[^-]+-----/g, '')); }
+  // Text in a chosen format ('hex' | 'base64' | UTF-8 otherwise) -> bytes
+  function textBytes(v, fmt) { return fmt === 'hex' ? hexToBytes(v) : fmt === 'base64' ? unb64(v) : new TextEncoder().encode(v); }
+  // Best guess at the format of a key / IV / data field, and its length in bytes
+  function detectFmt(s) {
+    var c = (s || '').trim(), clean = c.replace(/\s/g, '');
+    if (/^[0-9a-fA-F\s]+$/.test(c) && clean.length % 2 === 0 && clean.length >= 2) return 'hex';
+    if (/^[A-Za-z0-9+/=\s]+$/.test(c) && clean.length % 4 === 0 && clean.length >= 4) { try { atob(clean); return 'base64'; } catch (e) { } }
+    return 'utf8';
+  }
+  function fmtByteLen(s, fmt) {
+    if (fmt === 'hex') return s.replace(/[^0-9a-fA-F]/g, '').length / 2;
+    if (fmt === 'base64') { try { return atob(s.trim().replace(/\s/g, '')).length; } catch (e) { return null; } }
+    return new TextEncoder().encode(s).length;
+  }
+  function fmtLabel(fmt) { return fmt === 'hex' ? 'Hexadecimal' : fmt === 'base64' ? 'Base64' : 'UTF-8'; }
   function rndBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
+  // Unbiased random integer in [0, max) (rejection sampling)
+  function randInt(max) { var limit = Math.floor(0x100000000 / max) * max, a = new Uint32Array(1); do { crypto.getRandomValues(a); } while (a[0] >= limit); return a[0] % max; }
+  // 32-bit number -> dotted IPv4
+  function ipStr(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
   // n random bytes as hex / Base64, or n printable ASCII characters. Bytes >= 188 are
   // rejected so each of the 94 characters is equally likely (188 = 2 * 94).
   function randomSecret(n, fmt) {
@@ -177,11 +197,10 @@ var CK = (function () {
   }
 
   /* Tool registry */
-  var _tools = [];          // manifest: {id,label,category,tag,icon,libs,desc}
+  var _tools = [];          // manifest: {id,label,category,tag,icon}
   var _categoryOrder = [];
   var _mounts = {};         // id -> mount function
   var _containers = {};     // id -> DOM element (created lazily)
-  var _apis = {};           // id -> object returned by mount (optional)
   var _active = null;
   var _homeEl = null;       // landing page shown when no tool is selected
 
@@ -193,14 +212,16 @@ var CK = (function () {
     for (var i = 0; i < _tools.length; i++) if (_tools[i].id === id) return _tools[i];
     return null;
   }
-  function registerTool(id, mountFn) {
-    _mounts[id] = mountFn;
-    // if this tool is already the active one showing a placeholder, mount it now
-    if (_active === id && _containers[id]) {
-      _containers[id].innerHTML = '';
-      delete _apis[id];
-      _doMount(id);
-    }
+  // Tool scripts load before app.js boots, so every tool is registered before any mount
+  function registerTool(id, mountFn) { _mounts[id] = mountFn; }
+  // Non-empty categories in display order (listed order first, then any others as first seen)
+  function _byCategory(fn) {
+    var cats = _categoryOrder.slice();
+    _tools.forEach(function (t) { if (cats.indexOf(t.category) === -1) cats.push(t.category); });
+    cats.forEach(function (cat) {
+      var inCat = _tools.filter(function (t) { return t.category === cat; });
+      if (inCat.length) fn(cat, inCat);
+    });
   }
 
   /* Rail */
@@ -208,12 +229,7 @@ var CK = (function () {
     var scroll = document.getElementById('railScroll');
     if (!scroll) return;
     scroll.innerHTML = '';
-    var cats = _categoryOrder.slice();
-    // append any categories not listed, in first-seen order
-    _tools.forEach(function (t) { if (cats.indexOf(t.category) === -1) cats.push(t.category); });
-    cats.forEach(function (cat) {
-      var inCat = _tools.filter(function (t) { return t.category === cat; });
-      if (!inCat.length) return;
+    _byCategory(function (cat, inCat) {
       scroll.appendChild(el('div', { class: 'grp' }, cat));
       inCat.forEach(function (t) {
         var btn = el('button', { class: 'item', 'data-id': t.id, title: t.label });
@@ -235,21 +251,15 @@ var CK = (function () {
 
   /* Mount management */
   function _doMount(id) {
-    var tool = getTool(id);
     var root = _containers[id];
-    var mountFn = _mounts[id];
-    var ctx = { tool: tool, toast: toast, copy: copy, paste: paste, download: download,
-                store: store, el: el, iconSvg: iconSvg, $: $ };
-    if (mountFn) {
-      var api = mountFn(root, ctx);
-      _apis[id] = api || {};
+    if (_mounts[id]) {
+      _mounts[id](root, { toast: toast });
       rememberSettings(id, root);
     } else {
-      _renderPlaceholder(root, tool);
+      _renderPlaceholder(root, getTool(id));
     }
   }
 
-  // Shown only when a tool's script failed to load (e.g. a library did not download)
   /* Remember a tool's settings: dropdowns, switches and number fields in its config panel.
      Text fields are never stored, so keys, secrets, passwords and inputs stay out of storage.
      A share link in the URL takes precedence over saved settings. */
@@ -285,6 +295,7 @@ var CK = (function () {
     root.addEventListener('change', later); root.addEventListener('input', later); root.addEventListener('click', later);
   }
 
+  // Shown only when a tool's script failed to load (e.g. a library did not download)
   function _renderPlaceholder(root, tool) {
     var head = el('div', { class: 'tool-head' });
     head.innerHTML = '<h1>' + tool.label + '</h1>';
@@ -315,10 +326,7 @@ var CK = (function () {
     });
     if (_homeEl) _homeEl.hidden = true;
     _markActiveRail(id);
-    var t = getTool(id);
-    if (t) document.title = t.label + ' - CyberKitchen';
-    var api = _apis[id];
-    if (api && typeof api.onActivate === 'function') api.onActivate();
+    document.title = getTool(id).label + ' - CyberKitchen';
   }
 
   /* Home / landing page: shown when no tool is selected.
@@ -358,11 +366,7 @@ var CK = (function () {
 
     var grid = el('div', { class: 'home-grid' });
     var sections = [];
-    var cats = _categoryOrder.slice();
-    _tools.forEach(function (t) { if (cats.indexOf(t.category) === -1) cats.push(t.category); });
-    cats.forEach(function (cat) {
-      var inCat = _tools.filter(function (t) { return t.category === cat; });
-      if (!inCat.length) return;
+    _byCategory(function (cat, inCat) {
       var meta = CAT_META[cat] || { color: '#3b82f6', desc: '', icon: '<circle cx="12" cy="12" r="9"/>' };
       var card = el('div', { class: 'home-cat-card' });
       var head = el('div', { class: 'hcc-head' });
@@ -456,7 +460,7 @@ var CK = (function () {
     window.addEventListener('hashchange', _onHash);
   }
 
-  // Rough password strength: 6-point score to a labelled, colour-coded rating
+  // Rough password strength: 6-point score to a labelled, colour-coded rating (used by attachStrength)
   function pwStrength(pw) {
     var s = 0;
     if (pw.length >= 8) s++; if (pw.length >= 12) s++;
@@ -498,11 +502,10 @@ var CK = (function () {
 
   return {
     boot: boot, defineTools: defineTools, registerTool: registerTool,
-    navigate: navigate, getTool: getTool,
-    theme: theme, toast: toast, copy: copy, paste: paste, download: download,
-    store: store, el: el, iconSvg: iconSvg, $: $, flashVerify: flashVerify,
-    pwStrength: pwStrength, attachStrength: attachStrength,
-    share: share, rememberSettings: rememberSettings, toHex: toHex, hexToBytes: hexToBytes, b64: b64, unb64: unb64, b64uEnc: b64uEnc, b64uDec: b64uDec,
-    pem: pem, unpem: unpem, rndBytes: rndBytes, randomSecret: randomSecret
+    toast: toast, copy: copy, paste: paste, download: download,
+    el: el, iconSvg: iconSvg, flashVerify: flashVerify, attachStrength: attachStrength,
+    share: share, rememberSettings: rememberSettings, toHex: toHex, hexToBytes: hexToBytes, b64: b64, unb64: unb64, b64u: b64u, b64uEnc: b64uEnc, b64uDec: b64uDec,
+    pem: pem, unpem: unpem, textBytes: textBytes, detectFmt: detectFmt, fmtByteLen: fmtByteLen, fmtLabel: fmtLabel,
+    rndBytes: rndBytes, randInt: randInt, randomSecret: randomSecret, ipStr: ipStr
   };
 })();

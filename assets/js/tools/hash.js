@@ -7,7 +7,6 @@
 (function () {
   'use strict';
   var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, randomSecret = CK.randomSecret;
-  var ENC = new TextEncoder();
   function concat(a, b) { var o = new Uint8Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
   function webBytes(algo, b) { return crypto.subtle.digest(algo, b).then(function (h) { return new Uint8Array(h); }); }
   function P(hex) { return Promise.resolve(hexToBytes(hex)); }
@@ -39,23 +38,22 @@
       return algo.hb(concat(ipad, msgBytes)).then(function (inner) { return algo.hb(concat(opad, inner)); });
     });
   }
-  function fmtHex(hx, fmt) { if (fmt === 'HEX') return hx.toUpperCase(); if (fmt === 'base64') return b64(hexToBytes(hx)); if (fmt === 'base64url') return b64(hexToBytes(hx)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); return hx; }
+  function fmtHex(hx, fmt) { if (fmt === 'HEX') return hx.toUpperCase(); if (fmt === 'base64') return b64(hexToBytes(hx)); if (fmt === 'base64url') return CK.b64u(hexToBytes(hx)); return hx; }
   function outByteLen(s) { s = s.trim().replace(/\s/g, ''); if (/^[0-9a-fA-F]+$/.test(s) && s.length % 2 === 0) return s.length / 2; try { return unb64(s).length; } catch (e) { return null; } }
 
-  var I_HASH = '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>';
-  var I_FILE = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
+  var I_HASH = CK.ui.IC.hash;
+  var I_FILE = CK.ui.IC.file;
+  var I_CHECK = CK.ui.IC.check;
+  var I_DETECT = CK.ui.IC.detect;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
+  var I_SHUF = CK.ui.IC.shuffle;
 
   CK.registerTool('hash', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'sha256';
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Cryptographic Hash', ALGOS.length + ' algorithms'));
+    root.appendChild(ui.head('Cryptographic Hash'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_HASH);
@@ -90,7 +88,7 @@
     hmacSwitch.appendChild(hmacCb); hmacSwitch.appendChild(el('span', { class: 'track' })); hmacSwitch.appendChild(el('span', {}, 'HMAC Mode'));
     hmacWrap.appendChild(hmacSwitch);
     var keyInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'HMAC key' });
-    var keyFmt = ui.select([['utf8', 'UTF-8'], ['hex', 'Hexadecimal'], ['base64', 'Base64']].map(o), null, 'utf8');
+    var keyFmt = ui.select([['utf8', 'UTF-8'], ['hex', 'Hexadecimal'], ['base64', 'Base64']], null, 'utf8');
     var keyGen = ui.iconBtn(I_SHUF, 'Random', genKey);
     var keyWrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     keyInput.style.flex = '1'; keyInput.style.minWidth = '0'; keyFmt.style.width = 'auto'; keyWrap.appendChild(keyInput); keyWrap.appendChild(keyFmt); keyWrap.appendChild(keyGen);
@@ -100,8 +98,8 @@
 
     colL.appendChild(pickWrap); colL.appendChild(hmacWrap);
 
-    var inFmt = ui.select([['utf8', 'UTF-8'], ['hex', 'Hexadecimal'], ['base64', 'Base64']].map(o), null, 'utf8');
-    var outFmt = ui.select([['hex', 'Hexadecimal (lower)'], ['HEX', 'Hexadecimal (UPPER)'], ['base64', 'Base64'], ['base64url', 'Base64 URL-safe']].map(o), null, 'hex');
+    var inFmt = ui.select([['utf8', 'UTF-8'], ['hex', 'Hexadecimal'], ['base64', 'Base64']], null, 'utf8');
+    var outFmt = ui.select([['hex', 'Hexadecimal (lower)'], ['HEX', 'Hexadecimal (UPPER)'], ['base64', 'Base64'], ['base64url', 'Base64 URL-safe']], null, 'hex');
     colR.appendChild(ui.field('Input format', inFmt));
     colR.appendChild(ui.field('Output format', outFmt));
 
@@ -122,8 +120,8 @@
     outP.ta.addEventListener('input', clearVerify);
 
     function select(id) { var a = get(id); if (!a) return; current = id; syncSelects(id); ui.setSel(strip, a.label, a.badge, a.label + ' digest, ' + a.bytes + ' bytes'); }
-    function inputBytes() { var v = inP.ta.value; if (!v) return null; if (inFmt.value === 'hex') return hexToBytes(v); if (inFmt.value === 'base64') return unb64(v); return ENC.encode(v); }
-    function keyBytes() { var v = keyInput.value; if (keyFmt.value === 'hex') return hexToBytes(v); if (keyFmt.value === 'base64') return unb64(v); return ENC.encode(v); }
+    function inputBytes() { var v = inP.ta.value; return v ? CK.textBytes(v, inFmt.value) : null; }
+    function keyBytes() { return CK.textBytes(keyInput.value, keyFmt.value); }
     // returns Promise<hex> for the current algorithm (HMAC-aware)
     function digest(bytes) {
       var a = get(current);

@@ -10,7 +10,6 @@
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-
   function pad(n, w) { n = String(n); while (n.length < (w || 2)) n = '0' + n; return n; }
   // Minimal date formatter: YYYY YY MM DD HH hh mm ss SSS A MMM ddd
   function format(d, fmt, utc) {
@@ -50,16 +49,15 @@
   }
 
   var I_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
-  var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  var I_NOW = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_OUT = CK.ui.IC.out;
+  var I_NOW = CK.ui.IC.reset;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('timestamp', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Timestamp Converter', 'epoch / ISO'));
+    root.appendChild(ui.head('Timestamp Converter'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CLOCK);
@@ -72,7 +70,7 @@
     var grid = el('div', { class: 'cfg-grid wide-left' });
     var colL = el('div', { class: 'col' });
     var colR = el('div', { class: 'col' });
-    var modeSel = ui.select([['auto', 'Auto-detect'], ['sec', 'Unix seconds'], ['ms', 'Unix milliseconds'], ['iso', 'Date string']].map(o), run, 'auto');
+    var modeSel = ui.select([['auto', 'Auto-detect'], ['sec', 'Unix seconds'], ['ms', 'Unix milliseconds'], ['iso', 'Date string']], run, 'auto');
     colL.appendChild(ui.field('Interpret input as', modeSel));
     var fmtInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', value: 'YYYY-MM-DD HH:mm:ss', placeholder: 'YYYY-MM-DD HH:mm:ss' });
     fmtInput.addEventListener('input', run);

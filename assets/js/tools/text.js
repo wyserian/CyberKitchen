@@ -191,16 +191,15 @@
   }
 
   var I_TEXT = '<path d="M4 6h16M4 12h10M4 18h7"/><path d="m18 14 1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/>';
-  var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_OUT = CK.ui.IC.out;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('text', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Text Cleaner', 'clean / extract / redact'));
+    root.appendChild(ui.head('Text Cleaner'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_TEXT);
@@ -213,13 +212,13 @@
     // Mode first; only the chosen mode's options are shown next to it
     var grid = el('div', { class: 'cfg-grid wide-right' });
     var colA = el('div', { class: 'col' }), colB = el('div', { class: 'col' });
-    var modeSel = ui.select([['clean', 'Clean'], ['extract', 'Extract'], ['redact', 'Redact']].map(o), function () { applyMode(); run(); }, 'clean');
+    var modeSel = ui.select([['clean', 'Clean'], ['extract', 'Extract'], ['redact', 'Redact']], function () { applyMode(); run(); }, 'clean');
     colA.appendChild(ui.field('Mode', modeSel));
     function row() { return el('div', { style: 'display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center;' }); }
     // key -> { cb, def }; key -> { sel, def }
     var SW = {}, SEL = {};
     function sw(key, label, def, list) { var t = ui.toggle(label, def, run); list.appendChild(t.wrap); SW[key] = { cb: t.cb, def: def }; }
-    function sel(key, items, def) { var s = ui.select(items.map(o), run, def); SEL[key] = { sel: s, def: def }; return s; }
+    function sel(key, items, def) { var s = ui.select(items, run, def); SEL[key] = { sel: s, def: def }; return s; }
 
     var cleanBox = el('div', { class: 'col' }), cRow = row();
     sw('trim', 'Trim lines', true, cRow); sw('collapse', 'Collapse spaces', true, cRow);

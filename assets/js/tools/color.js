@@ -8,7 +8,6 @@
   'use strict';
   var b64uDec = CK.b64uDec;
 
-
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
   function hslToRgb(h, s, l) {
     h = ((h % 360) + 360) % 360; s /= 100; l /= 100;
@@ -44,16 +43,16 @@
   function contrast(a, b) { var l1 = luminance(a), l2 = luminance(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); }
 
   var I_DROP = '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>';
-  var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_OUT = CK.ui.IC.out;
+  var I_SHUF = CK.ui.IC.shuffle;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
   function rndHex() { var n = Math.floor(Math.random() * 0x1000000); return '#' + n.toString(16).padStart(6, '0'); }
 
   CK.registerTool('color', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
 
-    root.appendChild(ui.head('Color Converter', 'WCAG'));
+    root.appendChild(ui.head('Color Converter'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DROP);

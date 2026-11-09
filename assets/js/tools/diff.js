@@ -7,7 +7,6 @@
   'use strict';
   var b64uDec = CK.b64uDec;
 
-
   // LCS diff of two token arrays -> [{t:-1|0|1, v}]
   function diffTokens(a, b) {
     var n = a.length, m = b.length;
@@ -24,15 +23,14 @@
   function padEnd(s, w) { s = String(s); if (s.length >= w) return s.slice(0, w); while (s.length < w) s += ' '; return s; }
 
   var I_DIFF = '<path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M12 3v18"/>';
-  var I_OUT = '<path d="M4 7h16M4 12h16M4 17h10"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_OUT = CK.ui.IC.out;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('diff', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('Text Diff', 'compare'));
+    root.appendChild(ui.head('Text Diff'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DIFF);
@@ -44,8 +42,8 @@
     var grid = el('div', { class: 'cfg-grid wide-left' });
     var colL = el('div', { class: 'col2' });
     var colR = el('div', { class: 'col' });
-    var granSel = ui.select([['line', 'Line'], ['word', 'Word']].map(o), run, 'line');
-    var viewSel = ui.select([['inline', 'Inline (unified)'], ['side', 'Side-by-side']].map(o), run, 'inline');
+    var granSel = ui.select([['line', 'Line'], ['word', 'Word']], run, 'line');
+    var viewSel = ui.select([['inline', 'Inline (unified)'], ['side', 'Side-by-side']], run, 'inline');
     colL.appendChild(ui.field('Granularity', granSel)); colL.appendChild(ui.field('View', viewSel));
     grid.appendChild(colL); grid.appendChild(colR);
     cfg.appendChild(grid);

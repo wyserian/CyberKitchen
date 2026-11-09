@@ -7,35 +7,23 @@
 (function () {
   'use strict';
   var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
-  var ENC = new TextEncoder(), DEC = new TextDecoder();
+  var DEC = new TextDecoder();
 
-  function detectFmt(s) {
-    var c = s.trim(), clean = c.replace(/\s/g, '');
-    if (/^[0-9a-fA-F\s]+$/.test(c) && clean.length % 2 === 0 && clean.length >= 2) return 'hex';
-    if (/^[A-Za-z0-9+/=\s]+$/.test(c) && clean.length % 4 === 0 && clean.length >= 4) { try { atob(clean); return 'base64'; } catch (e) { } }
-    return 'utf8';
-  }
-  function fmtByteLen(s, fmt) {
-    if (fmt === 'hex') return s.replace(/[^0-9a-fA-F]/g, '').length / 2;
-    if (fmt === 'base64') { try { return atob(s.trim().replace(/\s/g, '')).length; } catch (e) { return null; } }
-    return ENC.encode(s).length;
-  }
-  function fmtLabelOf(fmt) { return fmt === 'hex' ? 'Hexadecimal' : fmt === 'base64' ? 'Base64' : 'UTF-8'; }
+  var detectFmt = CK.detectFmt, fmtByteLen = CK.fmtByteLen, fmtLabelOf = CK.fmtLabel;
 
   var I_SHIELD = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>';
   var I_LOCK = '<path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v10H5z"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  var I_DETECT = '<path d="m12 3 1.9 4.6L18 9l-4.1 1.4L12 15l-1.9-4.6L6 9l4.1-1.4zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>';
-  var I_SWAP = '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
+  var I_SHUF = CK.ui.IC.shuffle;
+  var I_CHECK = CK.ui.IC.check;
+  var I_DETECT = CK.ui.IC.detect;
+  var I_SWAP = CK.ui.IC.swap;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('rsa', function (root, ctx) {
     var ui = CK.ui, el = CK.el, bits = 2048, hash = 'SHA-256';
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('RSA Encrypt / Decrypt', 'Web Crypto'));
+    root.appendChild(ui.head('RSA Encrypt / Decrypt'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SHIELD);
@@ -51,10 +39,10 @@
     var grid = el('div', { class: 'cfg-grid wide-left' });
     var colL = el('div', { class: 'col2 kv-mp' });
     var colR = el('div', { class: 'col' });
-    var sizeSel = ui.select([['1024', 'RSA-1024'], ['2048', 'RSA-2048'], ['4096', 'RSA-4096']].map(o), function (v) { bits = +v; updateSel(); }, '2048');
-    var hashSel = ui.select([['SHA-256', 'OAEP + SHA-256'], ['SHA-384', 'OAEP + SHA-384'], ['SHA-512', 'OAEP + SHA-512'], ['SHA-1', 'OAEP + SHA-1']].map(o), function (v) { hash = v; updateSel(); }, 'SHA-256');
-    var ptFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']].map(o), null, 'utf8');
-    var ctFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal']].map(o), null, 'base64');
+    var sizeSel = ui.select([['1024', 'RSA-1024'], ['2048', 'RSA-2048'], ['4096', 'RSA-4096']], function (v) { bits = +v; updateSel(); }, '2048');
+    var hashSel = ui.select([['SHA-256', 'OAEP + SHA-256'], ['SHA-384', 'OAEP + SHA-384'], ['SHA-512', 'OAEP + SHA-512'], ['SHA-1', 'OAEP + SHA-1']], function (v) { hash = v; updateSel(); }, 'SHA-256');
+    var ptFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'utf8');
+    var ctFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'base64');
     function keyBox(labelText) {
       var ta = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: labelText + ' (PEM)' });
       ta.style.flex = '1'; ta.style.fontSize = '11px';
@@ -86,7 +74,7 @@
 
     function alg() { return { name: 'RSA-OAEP', hash: hash }; }
     function updateSel() { ui.setSel(strip, 'RSA-' + bits, hash, 'RSA-OAEP with ' + hash); }
-    function ptBytes() { var v = inP.ta.value; if (ptFmt.value === 'hex') return hexToBytes(v); if (ptFmt.value === 'base64') return unb64(v); return ENC.encode(v); }
+    function ptBytes() { return CK.textBytes(inP.ta.value, ptFmt.value); }
     function fromPt(buf) { if (ptFmt.value === 'hex') return toHex(buf); if (ptFmt.value === 'base64') return b64(buf); return DEC.decode(buf); }
     function ctBytes(src) { return ctFmt.value === 'hex' ? hexToBytes(src) : unb64(src); }
 

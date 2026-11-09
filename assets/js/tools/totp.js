@@ -40,19 +40,16 @@
       });
   }
 
-
   var I_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
-  var I_KEY = '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 0 0 3M14 9l2 2"/>';
-  var I_SHUF = '<path d="M18 4l3 3-3 3M21 7H8a4 4 0 0 0-4 4M6 20l-3-3 3-3M3 17h12a4 4 0 0 0 4-4"/>';
-  var I_SHARE = '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>';
-  var I_RESET = '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>';
-
+  var I_KEY = CK.ui.IC.key;
+  var I_SHUF = CK.ui.IC.shuffle;
+  var I_SHARE = CK.ui.IC.share;
+  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('totp', function (root, ctx) {
     var ui = CK.ui, el = CK.el, mode = 'totp';
-    function o(a) { return { value: a[0], label: a[1] }; }
 
-    root.appendChild(ui.head('TOTP / HOTP Authenticator', 'RFC 6238'));
+    root.appendChild(ui.head('TOTP / HOTP Authenticator'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CLOCK);
@@ -67,9 +64,9 @@
     var colL = el('div', { class: 'col2' });
     var colR = el('div', { class: 'col' });
 
-    var modeSel = ui.select([['totp', 'Time-based (TOTP)'], ['hotp', 'Counter-based (HOTP)']].map(o), function (v) { mode = v; applyMode(); regen(); }, 'totp');
-    var algoSel = ui.select([['SHA-1', 'SHA-1'], ['SHA-256', 'SHA-256'], ['SHA-512', 'SHA-512']].map(o), function () { updateSel(); regen(); }, 'SHA-1');
-    var digitsSel = ui.select([['6', '6 digits'], ['7', '7 digits'], ['8', '8 digits']].map(o), function () { updateSel(); regen(); }, '6');
+    var modeSel = ui.select([['totp', 'Time-based (TOTP)'], ['hotp', 'Counter-based (HOTP)']], function (v) { mode = v; applyMode(); regen(); }, 'totp');
+    var algoSel = ui.select([['SHA-1', 'SHA-1'], ['SHA-256', 'SHA-256'], ['SHA-512', 'SHA-512']], function () { updateSel(); regen(); }, 'SHA-1');
+    var digitsSel = ui.select([['6', '6 digits'], ['7', '7 digits'], ['8', '8 digits']], function () { updateSel(); regen(); }, '6');
 
     var periodInput = el('input', { class: 'inp sm', type: 'number', min: '5', max: '300', value: '30' });
     periodInput.addEventListener('input', function () { updateSel(); regen(); });
@@ -82,7 +79,7 @@
     colL.appendChild(ui.field('Mode', modeSel)); colL.appendChild(ui.field('Algorithm', algoSel));
     colL.appendChild(ui.field('Digits', digitsSel)); colL.appendChild(stepCell);
 
-    var fmtSel = ui.select([['base32', 'Base32'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']].map(o), function () { regen(); }, 'base32');
+    var fmtSel = ui.select([['base32', 'Base32'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']], function () { regen(); }, 'base32');
     colR.appendChild(ui.field('Secret format', fmtSel));
 
     grid.appendChild(colL); grid.appendChild(colR);
