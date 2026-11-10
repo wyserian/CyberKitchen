@@ -88,8 +88,8 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_TOKEN);
-    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
     strip.acts.appendChild(ui.iconBtn(I_NEW, 'New token', doNew));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
@@ -115,7 +115,7 @@
     // Public / private keys (RS256, ES256, ES384, EdDSA)
     function keyBox(labelText) {
       var input = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: labelText + ' (PEM or JWK)' });
-      input.style.flex = '1'; input.style.fontSize = '11px'; input.style.minWidth = '0';
+      input.style.flex = '1'; input.style.minWidth = '0';
       var wrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
       wrap.appendChild(input);
       return { field: ui.field(labelText, wrap), input: input, wrap: wrap };

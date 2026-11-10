@@ -215,17 +215,27 @@ CK.ui = (function () {
     return f;
   }
 
-  /* <select> from [{value,label}], [[value,label]] or ['a','b']; onChange(value) */
+  /* <select> from [{value,label}], [[value,label]] or ['a','b']; onChange(value).
+     An item { group: 'Heading', items: [...] } becomes a headed group (<optgroup>). */
   function select(items, onChange, current) {
     var s = el('select', { class: 'inp' });
-    items.forEach(function (it) {
+    function add(parent, it) {
+      if (it && it.group) { var g = el('optgroup', { label: it.group }); it.items.forEach(function (x) { add(g, x); }); parent.appendChild(g); return; }
       if (Array.isArray(it)) it = { value: it[0], label: it[1] };
       var v = it.value != null ? it.value : it, t = it.label != null ? it.label : it;
-      var o = el('option'); o.value = v; o.textContent = t; s.appendChild(o);
-    });
+      var o = el('option'); o.value = v; o.textContent = t; parent.appendChild(o);
+    }
+    items.forEach(function (it) { add(s, it); });
     if (current != null) s.value = current;
     if (onChange) s.addEventListener('change', function () { onChange(s.value); });
     return s;
+  }
+  /* Items for select(), grouped under headings: groupOf(x) names the heading, item(x) gives [value, label].
+     Headings follow `order` when given, else the order they first appear in. */
+  function grouped(list, groupOf, item, order) {
+    var names = (order || []).slice(), map = {};
+    list.forEach(function (x) { var g = groupOf(x); if (names.indexOf(g) < 0) names.push(g); (map[g] = map[g] || []).push(item(x)); });
+    return names.filter(function (g) { return map[g]; }).map(function (g) { return { group: g, items: map[g] }; });
   }
 
   /* A labelled toggle switch; onChange(checked) */
@@ -241,6 +251,6 @@ CK.ui = (function () {
     IC: IC, head: head, iconBtn: iconBtn,
     selStrip: selStrip, setSel: setSel, picker: picker,
     textPanel: textPanel, ioRow: ioRow, configPanel: configPanel, field: field,
-    select: select, toggle: toggle
+    select: select, grouped: grouped, toggle: toggle
   };
 })();

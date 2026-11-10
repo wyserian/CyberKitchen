@@ -49,7 +49,6 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CLOCK);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.shuffle, 'Random', doRandom));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));

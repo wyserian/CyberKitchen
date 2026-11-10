@@ -231,7 +231,7 @@
 
     // One dropdown per encoding group; picking from one clears the others
     var groupSelects = {};
-    var pkGrid = CK.el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 14px; padding:11px 13px;' });
+    var pkGrid = CK.el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px 14px; padding:11px 13px;' });
     GROUP_ORDER.forEach(function (g) {
       var items = LIST.filter(function (e) { return e.group === g; });
       var sel = ui.select([{ value: '', label: 'Select...' }].concat(items.map(function (e) { return { value: e.id, label: e.label }; })), function (v) { if (v) select(v); }, '');

@@ -342,7 +342,8 @@ var CK = (function () {
   /* Home / landing page: shown when no tool is selected.
      Per-category card metadata (icon, one-line description, accent colour). */
   var CAT_META = {
-    Encryption: { color: '#3b82f6', desc: 'Symmetric & asymmetric encryption', icon: '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>' },
+    'Symmetric Encryption': { color: '#3b82f6', desc: 'Shared-key ciphers & authenticated encryption', icon: '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>' },
+    'Asymmetric Encryption': { color: '#0ea5e9', desc: 'Public-key encryption, signatures & key exchange', icon: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 0 0 3M14 9l2 2"/>' },
     Hashing: { color: '#10b981', desc: 'Hashing & key derivation', icon: '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>' },
     Encoding: { color: '#f59e0b', desc: 'Encode, decode & convert', icon: '<path d="M8 6 3 12l5 6M16 6l5 6-5 6M13 4l-2 16"/>' },
     Authentication: { color: '#8b5cf6', desc: 'One-time codes & tokens', icon: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>' },
@@ -355,10 +356,6 @@ var CK = (function () {
   function _buildHome() {
     var wrap = el('div', { class: 'home' });
     var inner = el('div', { class: 'home-inner' });
-    var hero = el('div', { class: 'home-hero' });
-    hero.innerHTML = '<h1>Recipes for Hackers</h1><p>A browser-based toolkit for encryption, hashing, key derivation, encoding, conversion, authentication, networking and developer utilities. All processing happens locally, so no data ever leaves your machine.</p>';
-    inner.appendChild(hero);
-
     // Live tool search
     var search = el('input', { class: 'home-search', type: 'search', placeholder: 'Search tools...', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Search tools', 'aria-keyshortcuts': '/' });
     // "/" focuses the search from anywhere on the home page (unless typing in a field)

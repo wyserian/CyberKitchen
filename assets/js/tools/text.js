@@ -199,7 +199,6 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_TEXT);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
@@ -221,7 +220,7 @@
     sw('blank', 'Remove blank lines', false, cRow); sw('dedupe', 'Remove duplicate lines', false, cRow);
     sw('invisible', 'Remove invisible characters', true, cRow); sw('html', 'Strip HTML tags', false, cRow);
     sw('ascii', 'Plain ASCII punctuation', false, cRow); sw('accents', 'Remove accents', false, cRow);
-    var cSel = el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 14px;' });
+    var cSel = el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px 14px;' });
     cSel.appendChild(ui.field('Case', sel('case', [['none', 'Unchanged'], ['lower', 'lowercase'], ['upper', 'UPPERCASE'], ['title', 'Title Case'], ['camel', 'camelCase'], ['snake', 'snake_case'], ['kebab', 'kebab-case']], 'none')));
     cSel.appendChild(ui.field('Sort lines', sel('sort', [['none', 'Keep order'], ['az', 'A to Z'], ['za', 'Z to A'], ['len', 'By length']], 'none')));
     cSel.appendChild(ui.field('Unicode', sel('unicode', [['none', 'Unchanged'], ['NFC', 'NFC (composed)'], ['NFKC', 'NFKC (compatibility)']], 'none')));

@@ -34,7 +34,7 @@ Node.prototype.dispatchEvent = function (e) { for (var n = this; n; n = e.bubble
 Node.prototype.fire = function (t, extra) { var e = Object.assign({ target: this, preventDefault: function () {}, stopPropagation: function () {} }, extra || {}); (this.listeners[t] || []).forEach(function (f) { f(e); }); };
 Node.prototype.focus = function () {};
 Node.prototype.closest = function (sel) { var c = sel.replace('.', ''); for (var n = this; n; n = n.parentNode) if (n.classList && n.classList.contains(c)) return n; return null; };
-Object.defineProperty(Node.prototype, 'options', { get: function () { return this.children.filter(function (c) { return c.tagName === 'OPTION'; }); } });
+Object.defineProperty(Node.prototype, 'options', { get: function () { var out = []; (function walk(n) { n.children.forEach(function (c) { if (c.tagName === 'OPTION') out.push(c); else if (c.tagName === 'OPTGROUP') walk(c); }); })(this); return out; } });
 Object.defineProperty(Node.prototype, 'firstChild', { get: function () { return this.children[0] || null; } });
 Object.defineProperty(Node.prototype, 'innerHTML', { get: function () { return this._html || ''; }, set: function (v) { this._html = v; this.children = []; if (/class="lbl"/.test(v)) { var l = new Node('span'); l.className = 'lbl'; this.children.push(l); } } });
 Object.defineProperty(Node.prototype, 'textContent', { get: function () { return this._text || this._html || ''; }, set: function (v) { this._text = v; } });
@@ -58,12 +58,14 @@ var clip = null; Object.defineProperty(global.navigator, 'clipboard', { configur
 /* ---- Load the real app ---- */
 function load(p) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, p), 'utf8'), { filename: p }); }
 global.CryptoJS = require(path.join(ROOT, 'assets/js/vendor/crypto-js.min.js'));
-['assets/js/core.js', 'assets/js/ui.js', 'assets/js/vendor/hashlib.js', 'assets/js/vendor/qrcode.min.js', 'assets/js/vendor/noble.min.js'].forEach(load);
+['assets/js/core.js', 'assets/js/ui.js', 'assets/js/vendor/hashlib.js', 'assets/js/vendor/qrcode.min.js', 'assets/js/vendor/noble.min.js', 'assets/js/vendor/bcrypt.min.js'].forEach(load);
+// bcryptjs looks for self.crypto, which Node lacks; the browser build finds window.crypto
+dcodeIO.bcrypt.setRandomFallback(function (n) { return Array.from(require('crypto').randomBytes(n)); });
 var toasts = [];
 CK.toast = function (m, t) { toasts.push((t || 'success') + ': ' + m); };
 var mounts = {};
 CK.registerTool = function (id, fn) { mounts[id] = fn; };
-['hash', 'checksum', 'jwt', 'text', 'encode', 'cipher', 'keyx', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
+['hash', 'checksum', 'jwt', 'text', 'encode', 'cipher', 'keyx', 'markdown', 'qr', 'x509', 'kdf', 'passhash', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
 
 function all(n, out) { out = out || []; out.push(n); n.children.forEach(function (c) { all(c, out); }); return out; }
 function mount(id) {
@@ -114,11 +116,13 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
 
   /* Symmetric Ciphers tool: NIST GCM vector, every algorithm round-trips, tampering is caught, keys stay out of links */
   var Y = mount('cipher'), yin = Y.tas[0], yout = Y.tas[1];
-  var ykey = Y.field('Key'), ynonce = Y.field('Nonce / IV');
+  var ykey = Y.field('Key'), ynonce = Y.field('Initialization Vector');
   set(Y.field('Algorithm'), 'aes-gcm'); set(ykey.children[0], '00'.repeat(16)); set(ynonce.children[0], '00'.repeat(12));
-  set(Y.field('Plaintext format'), 'hex'); set(Y.field('Ciphertext format'), 'hex'); set(yin, '00'.repeat(16)); Y.prim('Encrypt').fire('click');
+  set(Y.field('Input format'), 'hex'); set(Y.field('Output format'), 'hex'); set(yin, '00'.repeat(16)); Y.prim('Encrypt').fire('click');
   ok(yout.value === '0388dace60b6a392f328c2b971b2fe78ab6e47d42cec13bdf53a67b21257bddf', 'cipher: AES-GCM NIST test case 2');
-  set(Y.field('Plaintext format'), 'utf8'); set(Y.field('Ciphertext format'), 'base64');
+  Y.byTitle('Verify').fire('click');
+  ok(/^success: Match/.test(last()), 'cipher: Verify confirms an input/output pair');
+  set(Y.field('Input format'), 'utf8'); set(Y.field('Output format'), 'base64');
   var PT = 'Twenty-four bytes here!!', bad = [];
   Y.field('Algorithm').options.map(function (o) { return o.value; }).forEach(function (id) {
     set(Y.field('Algorithm'), id); ykey.children[2].fire('click'); set(ynonce.children[0], '');
@@ -126,7 +130,7 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
     var ct = yout.value; set(yin, ct); yout.value = ''; Y.prim('Decrypt').fire('click');
     if (!ct || ct === PT || yout.value !== PT) bad.push(id + ' (' + last() + ')');
   });
-  ok(bad.length === 0 && Y.field('Algorithm').options.length === 20, 'cipher: all 20 algorithms encrypt and decrypt back' + (bad.length ? ': ' + bad.join(', ') : ''));
+  ok(bad.length === 0 && Y.field('Algorithm').options.length === 25, 'cipher: all 25 algorithms encrypt and decrypt back' + (bad.length ? ': ' + bad.join(', ') : ''));
   set(Y.field('Algorithm'), 'aes-ocb'); ykey.children[2].fire('click'); set(yin, PT); Y.prim('Encrypt').fire('click');
   var tam = CK.unb64(yout.value); tam[0] ^= 1; set(yin, CK.b64(tam)); Y.prim('Decrypt').fire('click');
   ok(/Authentication failed/.test(last()), 'cipher: a changed ciphertext is rejected');
@@ -135,16 +139,18 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   ok(ylink.a === 'aes-ocb' && !('k' in ylink) && ylink.n, 'cipher: share link carries the nonce but not the key');
   ok(!('in' in ylink), 'cipher: share link leaves the input text out by default');
   set(Y.field('Algorithm'), 'rabbit'); ykey.children[2].fire('click'); set(ynonce.children[0], '01020304'); set(yin, PT); Y.prim('Encrypt').fire('click');
-  ok(/takes no IV or an 8-byte IV/.test(last()), 'cipher: Rabbit rejects a 4-byte IV');
+  ok(/takes no initialization vector or an 8-byte one/.test(last()), 'cipher: Rabbit rejects a 4-byte IV');
 
   /* Key Exchange: RFC 7748 vectors, ECDH and MODP DH against Node, KEM round trips */
-  var KX = function () { var t = mount('keyx'); return { t: t, priv: t.field('Your private key').children[0], pub: t.field('Your public key'), gen: t.byTitle('Generate keypair') }; };
+  var KX = function () { var t = mount('keyx'); return { t: t, priv: t.field('Private key').children[0], pub: t.field('Public key').children[0], gen: t.byTitle('Generate keypair') }; };
   var kxRun = async function (k, label) { k.t.tas[1].value = ''; toasts.length = 0; k.t.prim(label).fire('click'); await until(function () { return k.t.tas[1].value || /error/.test(last()); }, 20000); return k.t.tas[1].value; };
   var A = KX();
   set(A.priv, '77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
   ok(A.pub.value === '8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a', 'x25519: public key derived from the private key (RFC 7748)');
   set(A.t.tas[0], 'de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f');
   ok(await kxRun(A, 'Derive') === '4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742', 'x25519: RFC 7748 shared secret');
+  toasts.length = 0; A.t.byTitle('Verify').fire('click'); await until(function () { return toasts.length; });
+  ok(/^success: Match/.test(last()), 'key exchange: Verify recomputes the shared secret');
   set(A.t.field('Algorithm'), 'x448'); set(A.priv, '9a8f4925d1519f5775cf46b04b5800d4ee9ee8bae8bc5565d498c28dd9c9baf574a9419744897391006382a6f127ab1d9ac2d8c0a598726b');
   set(A.t.tas[0], '3eb7a829b0cd20f5bcfc0b599b6feccf6da4627107bdb0d4f345b43027d8b972fc3e34fb4232a13ca706dcb57aec3dae07bdc1c67bf33609');
   ok(await kxRun(A, 'Derive') === '07fff4181ac6cc95ec1c16a94a0f74d12da232ce40a77552281d282bb60c0b56fd2464c335543936521c24403085d59a449a5037514a879d', 'x448: RFC 7748 shared secret');
@@ -237,11 +243,11 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   ok(out.value === h('sha256').toUpperCase(), 'checksum: format change rewrites its own output');
   set(out, h('md5')); C.byTitle('Verify').fire('click'); await sleep(50);
   ok(/No match: SHA-256 is 32 bytes, this is 16 bytes \(that length is MD5\)/.test(last()), 'checksum: wrong-length value names the algorithm it fits');
-  set(C.field('Algorithm'), 'md5'); await sleep(50);
+  set(C.field('Legacy'), 'md5'); await sleep(50);
   ok(/Match: MD5 of hello\.txt/.test(last()) && out.value === h('md5'), 'checksum: switching algorithm verifies a pasted value instead of overwriting it');
   set(out, h('md5').toUpperCase() + '  hello.txt'); C.byTitle('Verify').fire('click'); await sleep(50);
   ok(/Match: MD5/.test(last()), 'checksum: sha256sum-style "HASH  filename" line verifies');
-  set(out, ''); set(C.field('Algorithm'), 'sha1'); await until(function () { return out.value; });
+  set(out, ''); set(C.field('Legacy'), 'sha1'); await until(function () { return out.value; });
   ok(out.value === h('sha1').toUpperCase(), 'checksum: empty output is filled for the newly selected algorithm');
 
   /* JWT alg "none": unsigned token, no secret needed */
@@ -385,16 +391,35 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   ok(/Parse failed: Truncated or invalid certificate/.test(last()), 'x509: length past the end of the data is rejected');
 
   /* AES: short IV and bad key length are errors; a valid key/IV matches standard AES */
-  var A = mount('aes'), keyIn = A.field('Key').children[0], ivIn = A.field('Initialization Vector').children[0];
-  set(A.field('Initialization Vector').children[1], 'utf8');
+  /* AES classic modes: checks, and every mode against Node */
+  var A = mount('cipher'), keyIn = A.field('Key').children[0], ivIn = A.field('Initialization Vector').children[0];
+  set(A.field('Algorithm'), 'aes-cbc'); set(A.field('Key').children[1], 'utf8'); set(A.field('Initialization Vector').children[1], 'utf8');
   set(keyIn, '0123456789abcdef0123456789abcdef'); set(ivIn, '1234'); set(A.tas[0], 'hello world');
   A.prim('Encrypt').fire('click');
-  ok(/IV must be 16 bytes for CBC \(got 4\)/.test(last()), 'aes: 4-byte IV rejected');
-  set(ivIn, 'abcdefghijklmnop'); A.prim('Encrypt').fire('click');
-  var c = nc.createCipheriv('aes-256-cbc', Buffer.from('0123456789abcdef0123456789abcdef'), Buffer.from('abcdefghijklmnop'));
-  ok(A.tas[1].value === Buffer.concat([c.update('hello world'), c.final()]).toString('base64'), 'aes: CBC output matches Node');
-  set(keyIn, 'secret'); set(A.tas[0], A.tas[1].value); A.prim('Decrypt').fire('click');
-  ok(/Key must be 16, 24, or 32 bytes \(got 6\)/.test(last()), 'aes: decrypt checks key length too');
+  ok(/needs a 16-byte initialization vector \(got 4\)/.test(last()), 'aes-cbc: 4-byte initialization vector rejected');
+  set(ivIn, 'abcdefghijklmnop'); var aesBad = [];
+  for (var am of [['aes-cbc', 'aes-256-cbc'], ['aes-ecb', 'aes-256-ecb'], ['aes-cfb', 'aes-256-cfb'], ['aes-ofb', 'aes-256-ofb'], ['aes-ctr', 'aes-256-ctr']]) {
+    set(A.field('Algorithm'), am[0]); set(A.tas[0], 'hello world'); A.tas[1].value = ''; A.prim('Encrypt').fire('click');
+    var nci = nc.createCipheriv(am[1], Buffer.from('0123456789abcdef0123456789abcdef'), am[0] === 'aes-ecb' ? null : Buffer.from('abcdefghijklmnop'));
+    if (A.tas[1].value !== Buffer.concat([nci.update('hello world'), nci.final()]).toString('base64')) aesBad.push(am[0]);
+  }
+  ok(aesBad.length === 0, 'aes: CBC, ECB, CFB, OFB and CTR match Node (stream modes unpadded)' + (aesBad.length ? ': ' + aesBad.join(', ') : ''));
+  set(A.field('Algorithm'), 'aes-cbc'); set(keyIn, 'secret'); set(A.tas[0], 'AAAA'); A.prim('Decrypt').fire('click');
+  ok(/needs a 16 \/ 24 \/ 32-byte key \(got 6 bytes\)/.test(last()), 'aes: decrypt checks key length too');
+
+  /* Password Hashing (bcrypt here; Argon2's WASM loader needs a browser): hash, verify, detect */
+  var PH = mount('passhash'), phIn = PH.tas[0], phOut = PH.tas[1];
+  set(PH.field('Algorithm'), 'bcrypt'); set(PH.field('Cost factor').children[5], '4'); set(phIn, 'correct horse');
+  PH.prim('Hash').fire('click'); await until(function () { return phOut.value; }, 10000);
+  ok(/^\$2[ab]\$04\$[./A-Za-z0-9]{53}$/.test(phOut.value), 'passhash: bcrypt cost 4 hash');
+  toasts.length = 0; PH.byTitle('Verify').fire('click'); await until(function () { return toasts.length; }, 10000);
+  ok(/^success: Match/.test(last()), 'passhash: bcrypt verifies the right password');
+  set(phIn, 'wrong horse'); toasts.length = 0; PH.byTitle('Verify').fire('click'); await until(function () { return toasts.length; }, 10000);
+  ok(/^error: No match/.test(last()), 'passhash: bcrypt rejects a wrong password');
+  set(PH.field('Algorithm'), 'argon2id'); PH.byTitle('Detect').fire('click');
+  ok(PH.field('Algorithm').value === 'bcrypt' && /cost 4/.test(last()), 'passhash: Detect picks bcrypt and its cost from the hash');
+  phOut.value = '$argon2i$v=19$m=65536,t=2,p=1$c29tZXNhbHQ$CTFhFdXPJO1aFaMaO6Mm5c8y7cJHAph8ArZWb2GRPPc'; PH.byTitle('Detect').fire('click');
+  ok(PH.field('Algorithm').value === 'argon2i' && String(PH.field('Memory cost').children[4].value) === '65536', 'passhash: Detect picks the Argon2 variant and its settings');
 
   /* scrypt: RFC 7914 test vector 2 */
   var K = mount('kdf');

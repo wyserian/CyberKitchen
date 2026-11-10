@@ -27,17 +27,17 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(CK.ui.IC.key);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
-    var colL = el('div', { class: 'bc-left' });
+    // Left: Algorithm + Hash (narrow column) | Salt + the algorithm's other settings (wide column). Right: output.
+    var colL = el('div', { class: 'col2 mp-kv' });
     var colR = el('div', { class: 'col' });
 
-    // Parameters column (left): Algorithm, then Hash (PBKDF2) or scrypt params below it
+    // First column: Algorithm, then Hash (PBKDF2, HKDF)
     var paramsWrap = el('div', { class: 'col' });
     var algoSel = ui.select([['pbkdf2', 'PBKDF2'], ['scrypt', 'scrypt'], ['hkdf', 'HKDF']], function (v) { algo = v; applyAlgo(); updateSel(); }, 'pbkdf2');
     paramsWrap.appendChild(ui.field('Algorithm', algoSel));
@@ -47,18 +47,17 @@
     var hashField = ui.field('Hash', hashSel);
     paramsWrap.appendChild(hashField);
 
-    // scrypt params (shown below Algorithm in place of Hash)
+    // scrypt settings (second column, below Salt)
     var scWrap = el('div', { class: 'col' }); scWrap.style.display = 'none';
     var scRow = el('div', { style: 'display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;' });
     var nSel = ui.select([['14', '16384 (2^14)'], ['15', '32768 (2^15)'], ['16', '65536 (2^16)'], ['12', '4096 (2^12)'], ['10', '1024 (2^10)']], function () { updateSel(); }, '14'); nSel.style.width = 'auto';
-    var rInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '32', value: '8' }); rInput.style.width = '64px';
-    var pInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '16', value: '1' }); pInput.style.width = '64px';
+    var rInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '32', value: '8' });
+    var pInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '16', value: '1' });
     rInput.addEventListener('input', updateSel); pInput.addEventListener('input', updateSel);
     scRow.appendChild(ui.field('Cost (N)', nSel)); scRow.appendChild(ui.field('Block (r)', rInput)); scRow.appendChild(ui.field('Parallel (p)', pInput));
     scWrap.appendChild(scRow);
-    paramsWrap.appendChild(scWrap);
 
-    // Salt column (right): Salt, then Iterations (PBKDF2) below it
+    // Second column: Salt, then Iterations (PBKDF2), Info (HKDF) or the scrypt settings
     var saltWrap = el('div', { class: 'col' });
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Salt' });
     var saltFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']], null, 'base64');
@@ -67,12 +66,13 @@
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltFmt.style.width = 'auto';
     saltRow.appendChild(saltInput); saltRow.appendChild(saltFmt); saltRow.appendChild(saltGen);
     saltWrap.appendChild(ui.field('Salt', saltRow));
+    saltWrap.appendChild(scWrap);
 
     // Iterations (PBKDF2) directly below Salt
     var iters = 310000;
     var iterBtns = {}, iterRow = el('div', { style: 'display:flex; gap:5px; align-items:center; flex-wrap:wrap;' });
     ITERS.forEach(function (v) { var b = el('button', { class: 'eb' }); b.textContent = (v / 1000) + 'k'; b.addEventListener('click', function () { iters = v; iterCustom.value = ''; markIters(); updateSel(); }); iterBtns[v] = b; iterRow.appendChild(b); });
-    var iterCustom = el('input', { class: 'inp sm', type: 'number', min: '1', placeholder: 'Custom' }); iterCustom.style.width = '90px';
+    var iterCustom = el('input', { class: 'inp sm', type: 'number', min: '1', placeholder: 'Custom' });
     iterCustom.addEventListener('input', function () { if (iterCustom.value !== '') { var n = +iterCustom.value; if (n >= 1) iters = n; } markIters(); updateSel(); });
     iterRow.appendChild(iterCustom);
     var iterField = ui.field('Iterations', iterRow);
@@ -86,7 +86,7 @@
 
     colL.appendChild(paramsWrap); colL.appendChild(saltWrap);
 
-    var lenInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '1024', value: '32' }); lenInput.style.width = '90px';
+    var lenInput = el('input', { class: 'inp sm', type: 'number', min: '1', max: '1024', value: '32' });
     lenInput.addEventListener('input', updateSel);
     colR.appendChild(ui.field('Output length (bytes)', lenInput));
     var outFmt = ui.select([['hex', 'Hexadecimal'], ['base64', 'Base64']], null, 'hex');
@@ -97,7 +97,7 @@
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'PASSWORD', icon: CK.ui.IC.key, placeholder: 'Password to derive a key from...', primaries: [{ label: 'Derive', cls: 'enc', onClick: doDerive }], actions: ['copy', 'paste', 'clear'] });
+    var inP = ui.textPanel({ title: 'INPUT', icon: CK.ui.IC.key, placeholder: 'Password (PBKDF2, scrypt) or input key material (HKDF)...', primaries: [{ label: 'Derive', cls: 'enc', onClick: doDerive }], actions: ['copy', 'paste', 'clear'] });
     var outP = ui.textPanel({ title: 'DERIVED KEY', icon: I_LOCK, placeholder: 'Derived key appears here...', readonly: true, actions: ['copy', 'download'], downloadName: 'derived-key.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);

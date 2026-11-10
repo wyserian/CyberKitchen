@@ -90,7 +90,6 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_MD);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
@@ -127,7 +126,8 @@
       [].forEach.call(document.styleSheets, function (sh) {
         try { [].forEach.call(sh.cssRules, function (r) { if (r.selectorText && r.selectorText.indexOf('.md-preview') >= 0) css += r.cssText; }); } catch (e) { }
       });
-      css += 'body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
+      css += '::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}::-webkit-scrollbar-button{display:none}::-webkit-scrollbar-thumb{background:transparent;border-radius:3px}:hover::-webkit-scrollbar-thumb{background:var(--cbdr)}' +
+        'body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
         '.md-preview{background:none;border-radius:0;margin:0;padding:24px 32px;min-height:100vh;box-sizing:border-box;font-size:15px;}';
       var page = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
         '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src * data:">' +

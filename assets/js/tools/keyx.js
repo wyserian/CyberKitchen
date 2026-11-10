@@ -65,37 +65,54 @@
 
   CK.registerTool('keyx', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'x25519';
+
     root.appendChild(ui.head('Key Exchange'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_KX);
-    strip.desc.style.whiteSpace = 'normal';
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
-    var grid = el('div', { class: 'cfg-grid wide-right' });
-    var colA = el('div', { class: 'col' }), colB = el('div', { class: 'col' });
-    var algoSel = ui.select(ALGS.map(function (a) { return [a.id, a.label]; }), function (v) { select(v); }, current);
+    // Main grid: left column is a 2x2 sub-grid (Algorithm / Public key over Private key); right column is the format
+    var grid = el('div', { class: 'cfg-grid wide-left' });
+    var colL = el('div', { class: 'col2 mp-kv' });
+    var colR = el('div', { class: 'col' });
+    var algoSel = ui.select(ui.grouped(ALGS, function (a) { return a.kem ? 'Post-quantum key encapsulation' : /^(ff|modp)/.test(a.id) ? 'Finite-field Diffie-Hellman' : 'Elliptic-curve Diffie-Hellman'; }, function (a) { return [a.id, a.label]; }), function (v) { select(v); }, current);
     var fmtSel = ui.select([['hex', 'Hexadecimal'], ['base64', 'Base64']], function () { reformat(); }, 'hex');
-    colA.appendChild(ui.field('Algorithm', algoSel)); colA.appendChild(ui.field('Key format', fmtSel));
-    function keyInput(place) { var i = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: place }); i.style.flex = '1'; i.style.minWidth = '0'; i.style.fontSize = '11px'; return i; }
-    var privIn = keyInput('Your private key'), pubIn = keyInput('Your public key (derived from the private key)');
-    var privRow = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
-    privRow.appendChild(privIn); privRow.appendChild(ui.iconBtn(CK.ui.IC.shuffle, 'Generate keypair', doGenerate));
-    colB.appendChild(ui.field('Your private key', privRow));
-    colB.appendChild(ui.field('Your public key', pubIn));
+    function keyBox(labelText, place) {
+      var ta = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: place });
+      ta.style.flex = '1'; ta.style.minWidth = '0';
+      var wrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
+      wrap.appendChild(ta);
+      wrap.appendChild(ui.iconBtn(CK.ui.IC.shuffle, 'Generate keypair', doGenerate));
+      return { box: ui.field(labelText, wrap), ta: ta };
+    }
+    var pubBox = keyBox('Public key', 'Your public key: share it (derived from the private key)'), privBox = keyBox('Private key', 'Your private key: keep it secret');
+    var pubIn = pubBox.ta, privIn = privBox.ta;
     privIn.addEventListener('input', derivePub);
-    grid.appendChild(colA); grid.appendChild(colB);
+    // Left sub-grid, row-flow order: Algorithm, Public key (row 1), an empty cell, Private key (row 2)
+    colL.appendChild(ui.field('Algorithm', algoSel)); colL.appendChild(pubBox.box);
+    colL.appendChild(el('div')); colL.appendChild(privBox.box);
+    // Right column: the format of keys, ciphertexts and secrets
+    colR.appendChild(ui.field('Key format', fmtSel));
+    grid.appendChild(colL); grid.appendChild(colR);
     cfg.appendChild(grid);
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'PEER INPUT', icon: CK.ui.IC.key, placeholder: '', primaries: [{ label: 'Derive', cls: 'enc', onClick: doPrimary }, { label: 'Decapsulate', cls: 'dec', onClick: doDecap }], actions: ['copy', 'paste', 'clear'] });
-    var outP = ui.textPanel({ title: 'SHARED SECRET', icon: CK.ui.IC.out, placeholder: 'The shared secret appears here...', readonly: true, actions: ['copy', 'download'], downloadName: 'shared-secret.txt' });
+    var inP = ui.textPanel({ title: 'INPUT', icon: CK.ui.IC.key, placeholder: '', primaries: [{ label: 'Derive', cls: 'enc', onClick: doPrimary }, { label: 'Decapsulate', cls: 'dec', onClick: doDecap }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
+    var outP = ui.textPanel({ title: 'OUTPUT', icon: CK.ui.IC.out, placeholder: 'The shared secret appears here...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'shared-secret.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
+    // The first button reads Derive (Diffie-Hellman) or Encapsulate (KEM); Ctrl+Enter always runs it
     var prims = [].filter.call(inP.panel.querySelectorAll('.panel-hdr button'), function (b) { return /\bprim\b/.test(b.className); });
+
+    function clearVerify() { outP.ta.classList.remove('verify-match', 'verify-fail'); inP.ta.classList.remove('verify-match', 'verify-fail'); }
+    inP.ta.addEventListener('input', clearVerify);
+    outP.ta.addEventListener('input', clearVerify);
 
     function text(b) { return fmtSel.value === 'base64' ? b64(b) : toHex(b); }
     function bytes(t, what) {
@@ -119,9 +136,8 @@
       prims[0].textContent = a.kem ? 'Encapsulate' : 'Derive';
       prims[1].style.display = a.kem ? '' : 'none';
       inP.ta.placeholder = a.kem ? 'Encapsulate: paste the recipient\'s public key.\nDecapsulate: paste the ciphertext you received (uses your private key).' : 'Paste the other party\'s public key, then Derive.';
-      ui.setSel(strip, a.label, a.badge, a.kem ?
-        'Key encapsulation: the sender encapsulates to the recipient\'s ' + L.publicKey + '-byte public key and sends the ' + L.cipherText + '-byte ciphertext; the recipient decapsulates it with their private key. Both get the same 32-byte secret.' + (a.id === 'xwing' ? ' Secure if either ML-KEM or X25519 holds.' : ' Post-quantum.') :
-        'Each side combines its own private key with the other\'s public key and gets the same secret. ' + L.publicKey + '-byte public keys.' + (/^(ff|modp)/.test(a.id) ? ' Large keys: generating takes a moment.' : '') + ' Hash the secret (e.g. with HKDF) before using it as a key.');
+      ui.setSel(strip, a.label, a.badge, a.kem ? 'Key encapsulation · ' + L.publicKey + '-byte public key · ' + L.cipherText + '-byte ciphertext · 32-byte secret' + (a.id === 'xwing' ? ' · hybrid' : ' · post-quantum')
+        : 'Key agreement · ' + L.publicKey + '-byte public keys · hash the secret (e.g. HKDF) before use');
     }
     function derivePub() { try { pubIn.value = text(get(current).lib.getPublicKey(priv())); } catch (e) { pubIn.value = ''; } }
     function reformat() { [privIn, pubIn].forEach(function (i) { try { if (i.value.trim()) i.value = text(bytes(i.value, 'Key')); } catch (e) { } }); }
@@ -152,8 +168,31 @@
       }).then(function (s) { outP.ta.value = text(s); ctx.toast('Decapsulated: this is the sender\'s shared secret', 'success'); })
         .catch(function (e) { ctx.toast(e.message, 'error'); });
     }
+    // Recompute from the input and the private key: Derive for Diffie-Hellman, Decapsulate for a KEM
+    function doVerify() {
+      clearVerify();
+      var a = get(current), want = outP.ta.value.trim();
+      if (!inP.ta.value.trim() || !want) { ctx.toast('Both panels need content', 'warn'); return; }
+      return later(function () {
+        if (a.kem) { var c = bytes(inP.ta.value, 'Ciphertext'); return a.lib.decapsulate(c, priv()); }
+        return a.lib.getSharedSecret(priv(), peerPub());
+      }).then(function (s) {
+        var got = want.replace(/\s/g, ''), match = got.toLowerCase() === toHex(s) || got === b64(s);
+        CK.flashVerify(match, inP.ta, outP.ta);
+        ctx.toast(match ? 'Match: the output is the shared secret for this input and private key' : 'No match', match ? 'success' : 'error');
+      }).catch(function (e) { CK.flashVerify(false, inP.ta, outP.ta); ctx.toast(e.message, 'error'); });
+    }
+    // Pick the algorithm from the size of the pasted public (or private) key
+    function doDetect() {
+      var usePub = !!pubIn.value.trim(), b;
+      try { b = bytes(usePub ? pubIn.value : privIn.value, 'Key'); } catch (e) { ctx.toast('Paste a public or private key first', 'warn'); return; }
+      var hit = ALGS.filter(function (a) { var L = a.lib.lengths; return usePub ? b.length === L.publicKey || b.length === L.publicKeyUncompressed : b.length === L.secretKey; });
+      if (!hit.length) { ctx.toast('No supported algorithm uses ' + b.length + '-byte ' + (usePub ? 'public' : 'private') + ' keys', 'error'); return; }
+      select(hit.some(function (a) { return a.id === current; }) ? current : hit[0].id);
+      ctx.toast('Detected ' + get(current).label + ' (' + b.length + '-byte ' + (usePub ? 'public' : 'private') + ' key' + (hit.length > 1 ? '; same size: ' + hit.filter(function (a) { return a.id !== current; }).map(function (a) { return a.label; }).join(', ') : '') + ')', 'success');
+    }
     function doShare() { CK.share('keyx', { a: current, f: fmtSel.value, pk: privIn.value, pub: pubIn.value, in: inP.ta.value }, { pk: 'private key' }); }
-    function doReset() { privIn.value = ''; pubIn.value = ''; inP.ta.value = ''; outP.ta.value = ''; fmtSel.value = 'hex'; select('x25519'); }
+    function doReset() { privIn.value = ''; pubIn.value = ''; inP.ta.value = ''; outP.ta.value = ''; fmtSel.value = 'hex'; clearVerify(); select('x25519'); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');
     if (m) { try { var st = JSON.parse(b64uDec(m[1])); if (get(st.a)) current = st.a; fmtSel.value = st.f || 'hex'; privIn.value = st.pk || ''; pubIn.value = st.pub || ''; inP.ta.value = st.in || ''; } catch (e) { } }

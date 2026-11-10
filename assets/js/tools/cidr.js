@@ -46,7 +46,6 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_NET);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
@@ -62,7 +61,7 @@
     colL.appendChild(ui.field('Prefix length', pfxRow));
 
     // Optional subnetting into a longer prefix
-    var subInput = el('input', { class: 'inp sm', type: 'number', min: '0', max: '32', placeholder: 'e.g. 26' }); subInput.style.width = '100px';
+    var subInput = el('input', { class: 'inp sm', type: 'number', min: '0', max: '32', placeholder: 'e.g. 26' });
     colR.appendChild(ui.field('Subnet into (prefix)', subInput));
 
     grid.appendChild(colL); grid.appendChild(colR);

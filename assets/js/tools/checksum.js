@@ -10,8 +10,9 @@
   var toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64;
   // Same algorithms as the Hash tool (hash.js loads first), minus keyed SipHash; hx: bytes -> Promise<hex>
   var ALGOS = CK.hashAlgos.filter(function (a) { return !a.keyed; }).map(function (a) {
-    return { id: a.id, label: a.label, bytes: a.bytes, hx: function (b) { return a.hb(b).then(toHex); } };
+    return { id: a.id, label: a.label, group: a.group, bytes: a.bytes, hx: function (b) { return a.hb(b).then(toHex); } };
   });
+  var GROUPS = ALGOS.map(function (a) { return a.group; }).filter(function (g, i, all) { return all.indexOf(g) === i; });
   function get(id) { for (var i = 0; i < ALGOS.length; i++) if (ALGOS[i].id === id) return ALGOS[i]; return null; }
 
   function fmtSize(n) {
@@ -42,7 +43,6 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SUM);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
@@ -50,9 +50,18 @@
     var grid = el('div', { class: 'cfg-grid wide-left' });
     var colL = el('div', { class: 'col' });
     var colR = el('div', { class: 'col' });
-    var algoSel = ui.select(ALGOS.map(function (a) { return { value: a.id, label: a.label }; }), onAlgo, 'sha256');
+    // One dropdown per algorithm group, as in the Hash tool; picking from one clears the others
+    var current = 'sha256', groupSelects = {};
+    var pickGrid = el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(185px,1fr)); gap:10px 14px;' });
+    GROUPS.forEach(function (g) {
+      var items = ALGOS.filter(function (a) { return a.group === g; });
+      var sel = ui.select([{ value: '', label: 'Select...' }].concat(items.map(function (a) { return { value: a.id, label: a.label }; })), function (v) { if (v) { current = v; syncSelects(); onAlgo(); } }, '');
+      groupSelects[g] = sel;
+      pickGrid.appendChild(ui.field(g, sel));
+    });
+    function syncSelects() { var grp = get(current).group; GROUPS.forEach(function (g) { groupSelects[g].value = (g === grp ? current : ''); }); }
     var outFmt = ui.select([['hex', 'Hexadecimal (lower)'], ['HEX', 'Hexadecimal (UPPER)'], ['base64', 'Base64']], show, 'hex');
-    colL.appendChild(ui.field('Algorithm', algoSel));
+    colL.appendChild(pickGrid);
     colR.appendChild(ui.field('Output format', outFmt));
     grid.appendChild(colL); grid.appendChild(colR);
     cfg.appendChild(grid);
@@ -77,7 +86,7 @@
     // shown: the last checksum this tool wrote; anything else in the output is the user's expected value
     var file = null, bytes = null, digests = {}, busy = 0, shown = '';
 
-    function algo() { return get(algoSel.value); }
+    function algo() { return get(current); }
     function clearVerify() { drop.classList.remove('verify-match', 'verify-fail'); outP.ta.classList.remove('verify-match', 'verify-fail'); }
     function showDrop(state) {
       drop.innerHTML = '';
@@ -161,7 +170,7 @@
       });
     }
     function doReset() {
-      clearFile(); outP.ta.value = ''; algoSel.value = 'sha256'; outFmt.value = 'hex';
+      clearFile(); outP.ta.value = ''; current = 'sha256'; syncSelects(); outFmt.value = 'hex';
       updateSel(); ctx.toast('Reset complete', 'success');
     }
 
@@ -173,6 +182,6 @@
     drop.addEventListener('dragleave', function () { drop.classList.remove('drag'); });
     drop.addEventListener('drop', function (e) { e.preventDefault(); drop.classList.remove('drag'); if (e.dataTransfer && e.dataTransfer.files[0]) load(e.dataTransfer.files[0]); });
 
-    updateSel(); showDrop();
+    syncSelects(); updateSel(); showDrop();
   });
 })();

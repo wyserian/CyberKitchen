@@ -67,7 +67,6 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_JSON);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Validate', doValidate));
     strip.acts.appendChild(ui.iconBtn(I_TREE, 'Tree view', doTree));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));

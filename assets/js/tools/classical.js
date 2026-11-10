@@ -138,7 +138,7 @@
 
     // One dropdown per cipher group; picking from one clears the others
     var groupSelects = {};
-    var pickWrap = el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 14px;' });
+    var pickWrap = el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px 14px;' });
     GROUPS.forEach(function (g) {
       var items = LIST.filter(function (c) { return c.group === g; });
       var sel = ui.select([{ value: '', label: 'Select...' }].concat(items.map(function (c) { return { value: c.id, label: c.label }; })), function (v) { if (v) select(v); }, '');
@@ -147,11 +147,10 @@
     });
     function syncSelects(id) { var grp = (get(id) || {}).group; GROUPS.forEach(function (g) { groupSelects[g].value = (g === grp ? id : ''); }); }
 
-    // Left column: cipher dropdowns. Right column: extra input (content hugging the left).
+    // Left column: cipher dropdowns. Right column: the key or shift it needs.
     var grid = el('div', { class: 'cfg-grid split-73' });
     var colL = el('div', { class: 'col' });
-    var colR = el('div', { class: 'col', style: 'align-items:flex-start;' });
-    keyInput.style.width = '180px';
+    var colR = el('div', { class: 'col' });
     colL.appendChild(pickWrap);
     colR.appendChild(keyField); colR.appendChild(numField);
     grid.appendChild(colL); grid.appendChild(colR);

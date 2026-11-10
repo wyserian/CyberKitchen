@@ -39,7 +39,7 @@
     var ctFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'base64');
     function keyBox(labelText) {
       var ta = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: labelText + ' (PEM)' });
-      ta.style.flex = '1'; ta.style.fontSize = '11px';
+      ta.style.flex = '1';
       var wrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
       wrap.appendChild(ta);
       wrap.appendChild(ui.iconBtn(CK.ui.IC.shuffle, 'Generate keypair', function () { doGenerate(); }));

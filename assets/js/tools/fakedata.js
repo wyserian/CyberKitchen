@@ -83,7 +83,7 @@
     var dateTo = el('input', { class: 'inp sm', type: 'date', value: '2025-12-31' });
     dateFrom.addEventListener('input', generate); dateTo.addEventListener('input', generate);
     var dateF1 = ui.field('From', dateFrom), dateF2 = ui.field('To', dateTo);
-    // Additional per-type options carried over from the standalone Fake Data tool
+    // Additional per-type options
     var emailFmt = ui.select([['first.last', 'first.last'], ['flast', 'flast'], ['firstlast', 'firstlast'], ['random', 'random']].map(mk), generate, 'first.last');
     var emailNum = ui.select([['none', 'None'], ['sometimes', 'Sometimes'], ['always', 'Always']].map(mk), generate, 'none');
     var emailFmtF = ui.field('Format', emailFmt), emailNumF = ui.field('Number', emailNum);

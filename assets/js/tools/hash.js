@@ -1,5 +1,5 @@
 /*
-   hash.js - Cryptographic Hash
+   hash.js - Hash
    Select one algorithm: MD5, SHA-1, RIPEMD-160, SHA-2 (incl. SHA-512/t), SHA-3, SHAKE,
    Keccak, BLAKE / BLAKE2 / BLAKE3 (noble-hashes) or a fast checksum (CRC, Adler, FNV,
    Murmur3, xxHash, Jenkins, keyed SipHash). Optional HMAC, input UTF-8/Hex/Base64, output hex/HEX/Base64/Base64URL.
@@ -77,7 +77,7 @@
   CK.registerTool('hash', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'sha256';
 
-    root.appendChild(ui.head('Cryptographic Hash'));
+    root.appendChild(ui.head('Hash'));
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(CK.ui.IC.hash);
@@ -95,7 +95,7 @@
 
     // One dropdown per algorithm group; picking from one clears the others
     var groupSelects = {};
-    var pickGrid = el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px 14px;' });
+    var pickGrid = el('div', { style: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(185px,1fr)); gap:10px 14px;' });
     GROUPS.forEach(function (g) {
       var items = ALGOS.filter(function (a) { return a.group === g; });
       var sel = ui.select([{ value: '', label: 'Select...' }].concat(items.map(function (a) { return { value: a.id, label: a.label }; })), function (v) { if (v) select(v); }, '');

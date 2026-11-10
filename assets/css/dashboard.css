@@ -32,13 +32,15 @@ svg{display:block;}
 .theme-switching *, .theme-switching *::before, .theme-switching *::after{transition:none !important;}
 button{font-family:inherit;}
 
-/* Slim scrollbars across every tool and scrollable area. Chrome ignores the ::-webkit-scrollbar
+/* Thin, minimal scrollbars (3px thumb, hidden until the area is hovered, no track or arrows) across every tool and scrollable area. Chrome ignores the ::-webkit-scrollbar
    size whenever the standard scrollbar-width is set (and "thin" is 10px), so only browsers without
    ::-webkit-scrollbar (Firefox) get the standard properties. */
-@supports not selector(::-webkit-scrollbar){ *{scrollbar-width:thin; scrollbar-color:var(--cbdr) transparent;} }
-::-webkit-scrollbar{width:5px; height:5px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--cbdr); border-radius:5px;}
+@supports not selector(::-webkit-scrollbar){ *{scrollbar-width:thin; scrollbar-color:var(--bdr) transparent;} }
+::-webkit-scrollbar{width:3px; height:3px;}
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner{background:transparent;}
+::-webkit-scrollbar-button{display:none; width:0; height:0;}
+::-webkit-scrollbar-thumb{background:transparent; border-radius:3px;}
+:hover::-webkit-scrollbar-thumb{background:var(--cbdr);}
 ::-webkit-scrollbar-thumb:hover{background:var(--muted);}
 
 /* Slim top bar */
@@ -81,8 +83,6 @@ nav{
 }
 body.drawer-open nav{transform:translateX(0);}
 .nav-scroll{flex:1; overflow-y:auto; min-height:0; margin:0 -3px; padding:0 3px;}
-.nav-scroll::-webkit-scrollbar{width:4px;}
-.nav-scroll::-webkit-scrollbar-thumb{background:var(--bdr); border-radius:3px;}
 .grp{
   font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
   color:var(--muted); padding:12px 8px 5px;
@@ -146,12 +146,13 @@ main{padding:8px; overflow-x:hidden; overflow-y:auto; display:flex; flex-directi
   font-size:8.5px; font-weight:800; padding:2px 7px; border-radius:20px;
   background:rgba(59,130,246,.13); color:var(--acc); font-family:'SF Mono','Consolas',monospace;
 }
-.sel-desc{font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* Status text wraps in every tool rather than being cut off */
+.sel-desc{font-size:11px; color:var(--muted);}
 .acts{display:flex; align-items:center; gap:6px; flex-shrink:0;}
 
 /* Primary action buttons (solid, flat) */
 .prim{
-  min-height:28px; padding:4px 11px; border-radius:7px; font-size:12.5px; font-weight:700; color:#fff; border:none;
+  height:28px; padding:0 11px; border-radius:7px; font-size:12.5px; font-weight:700; color:#fff; border:none;
   display:inline-flex; align-items:center; gap:5px; cursor:pointer; transition:.13s;
 }
 .prim:hover{filter:brightness(1.06);}
@@ -189,8 +190,8 @@ main{padding:8px; overflow-x:hidden; overflow-y:auto; display:flex; flex-directi
 }
 .pk-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:4px;}
 .eb{
-  padding:3px 7px; border:none; border-radius:6px; background:var(--inset2); color:var(--muted);
-  font-size:10.5px; font-weight:600; cursor:pointer; transition:.12s; text-align:center;
+  height:28px; padding:0 9px; border:none; border-radius:6px; background:var(--inset2); color:var(--muted);
+  font-size:11.5px; font-weight:600; cursor:pointer; transition:.12s; text-align:center;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .eb:hover{color:var(--acc); background:rgba(59,130,246,.14);}
@@ -234,17 +235,20 @@ main{padding:8px; overflow-x:hidden; overflow-y:auto; display:flex; flex-directi
 
 /* Compact form controls for tool config panels */
 .field{display:flex; flex-direction:column; gap:3px;}
-.field > label{font-size:12px; font-weight:600; color:var(--muted);}
+.field > label{font-size:12px; font-weight:600; color:var(--muted); white-space:nowrap;}
 .cfg-form{padding:11px 13px; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end;}
 .inp{
   background:var(--inset2); color:var(--txt); border:none; border-radius:6px;
-  padding:6px 8px; font-size:12.5px; outline:none; transition:background .15s, box-shadow .15s; width:100%;
+  height:28px; padding:0 8px; font-size:12.5px; outline:none; transition:background .15s, box-shadow .15s; width:100%;
   -webkit-appearance:none; appearance:none;
 }
 .inp:focus{outline:none; box-shadow:none;}
 /* Dropdowns have no caret, so keyboard focus needs a visible ring */
 select.inp:focus-visible{box-shadow:0 0 0 2px rgba(59,130,246,.55);}
-.inp.sm{width:auto; min-width:64px;}
+/* Small number fields: one width everywhere */
+.inp.sm{width:84px; flex:none;}
+/* A dropdown always shows its value on one line; the grid columns below widen to fit it */
+select.inp{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
 /* Dropdown affordance: chevron so selects don't read as plain buttons */
 select.inp{
@@ -260,25 +264,30 @@ select.inp:hover{background-color:color-mix(in srgb, var(--acc) 14%, var(--inset
    Other browsers ignore this and keep their native list. */
 @supports (appearance:base-select){
   select.inp, select.inp::picker(select){appearance:base-select;}
-  select.inp{line-height:1.2;}
+  /* Its button part does not centre text vertically: a line as tall as the 28px control does */
+  select.inp{line-height:28px;}
   select.inp::picker-icon{display:none;} /* the chevron is our own background image */
-  select.inp::picker(select){border:none; border-radius:8px; padding:4px; margin-top:4px; background:var(--inset2); color:var(--txt); box-shadow:0 8px 28px var(--shd);}
-  select.inp option{padding:6px 8px; border-radius:6px; font-size:12.5px;}
+  select.inp::picker(select){border:none; border-radius:8px; padding:4px; margin-top:4px; background:var(--inset2); color:var(--txt); box-shadow:0 8px 28px var(--shd);
+    scrollbar-width:thin; scrollbar-color:var(--cbdr) transparent;} /* ::-webkit-scrollbar does not reach this layer */
+  select.inp option{padding:6px 8px; border-radius:6px; font-size:12.5px; line-height:1.3;}
   select.inp option::checkmark{display:none;}
   select.inp option:hover, select.inp option:focus-visible{background:rgba(59,130,246,.14); color:var(--acc); outline:none;}
   select.inp option:checked{color:var(--acc); font-weight:700;}
+  /* Group headings: small caps-style labels; the options under them keep the normal look */
+  select.inp optgroup{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:8px 8px 2px;}
+  select.inp optgroup option{font-weight:400; letter-spacing:normal; text-transform:none; color:var(--txt);}
+  select.inp optgroup option:checked{color:var(--acc); font-weight:700;}
 }
 
-/* Toolbar icon buttons sit slightly tighter than standalone act buttons */
+/* Toolbar icon buttons are square */
 .tb .ib{height:28px; min-width:28px;}
 
 /* Two-column config grid (e.g. AES): left keys, right options 2x2 */
 .cfg-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 18px; padding:11px 13px;}
-.cfg-grid.wide-left{grid-template-columns:minmax(0,1fr) 220px;}
-.cfg-grid.wide-right{grid-template-columns:220px minmax(0,1fr);}
+.cfg-grid.wide-left{grid-template-columns:minmax(0,1fr) minmax(220px,max-content);}
+.cfg-grid.wide-right{grid-template-columns:minmax(220px,max-content) minmax(0,1fr);}
 .cfg-grid.split-73{grid-template-columns:7fr 3fr;}
-.hash-left{display:grid; grid-template-columns:470px minmax(0,1fr); gap:16px; align-items:start;}
-.bc-left{display:grid; grid-template-columns:240px minmax(0,1fr); gap:16px; align-items:start;}
+.hash-left{display:grid; grid-template-columns:minmax(0,600px) minmax(0,1fr); gap:16px; align-items:start;}
 .argon-left{display:grid; grid-template-columns:190px 320px 150px minmax(0,1fr); gap:16px; align-items:start;}
 .cfg-grid .col, .pw-grid .col, .fd-grid .col{display:flex; flex-direction:column; gap:12px;}
 /* Fake data: type picker (col 1) | settings (col 2, with Count | Format on top) */
@@ -290,11 +299,13 @@ select.inp:hover{background-color:color-mix(in srgb, var(--acc) 14%, var(--inset
 .pw-row{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; padding:8px 13px 4px;}
 .pw-grid{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px 22px; align-items:start; padding:6px 13px 12px;}
 .cfg-grid .col2{display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; align-content:start;}
-.cfg-grid .col2.kv-mp{grid-template-columns:7fr 3fr;}
+.cfg-grid .col2.kv-mp{grid-template-columns:minmax(0,7fr) minmax(max-content,3fr);}
+/* Same, settings first: Algorithm / Padding on the left, the wide byte fields on the right */
+.cfg-grid .col2.mp-kv{grid-template-columns:minmax(max-content,3fr) minmax(0,7fr);}
 @media (max-width:820px){
   .cfg-grid, .cfg-grid.wide-left, .cfg-grid.wide-right, .cfg-grid.split-73{grid-template-columns:1fr;}
-  .hash-left, .bc-left, .argon-left{grid-template-columns:1fr;}
-  .cfg-grid .col2, .cfg-grid .col2.kv-mp{grid-template-columns:1fr;}
+  .hash-left, .argon-left{grid-template-columns:1fr;}
+  .cfg-grid .col2, .cfg-grid .col2.kv-mp, .cfg-grid .col2.mp-kv{grid-template-columns:1fr;}
   .pw-grid{grid-template-columns:1fr 1fr;}
 }
 @media (max-width:560px){
@@ -313,7 +324,7 @@ select.inp:hover{background-color:color-mix(in srgb, var(--acc) 14%, var(--inset
 .switch > input:checked + .track::after{transform:translateX(16px); background:#fff;}
 
 /* Length row: slim slider + custom number input */
-.length-row{display:grid; grid-template-columns:1fr 66px; gap:10px; align-items:center;}
+.length-row{display:grid; grid-template-columns:1fr 84px; gap:10px; align-items:center;}
 input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:4px; background:var(--inset2); border-radius:20px; outline:none; cursor:pointer;}
 input[type=range]::-webkit-slider-runnable-track{height:4px; background:var(--inset2); border-radius:20px;}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; margin-top:-5px; width:14px; height:14px; border-radius:50%; background:var(--acc); border:2px solid var(--surf); box-shadow:0 1px 3px var(--shd); cursor:pointer;}
@@ -363,7 +374,6 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 .html-console{border:none; border-radius:9px; background:var(--inset); display:flex; flex-direction:column; max-height:150px; flex-shrink:0;}
 .html-console-hdr{display:flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; border-bottom:1px solid var(--bdr); font-size:11px; font-weight:800; letter-spacing:.07em; color:var(--muted);}
 .html-console-hdr svg{stroke:var(--muted);}
-.html-console-hdr .ib{height:24px;}
 .html-console-body{overflow:auto; min-height:34px; font-family:'SF Mono','Fira Code','Consolas',monospace; font-size:11.5px; line-height:1.5;}
 .html-console-body:empty::after{content:'Console output appears here.'; display:block; padding:7px 10px; color:var(--muted); font-style:italic; opacity:.6;}
 .html-log{padding:3px 10px; border-bottom:1px solid var(--bdr); white-space:pre-wrap; word-break:break-word; color:var(--txt);}
@@ -385,17 +395,10 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 .ph-title{font-size:15px; font-weight:700;}
 .ph-note{font-size:12.5px; color:var(--muted); max-width:420px; line-height:1.6;}
 
-/* Home / landing page: centered hero + per-category cards */
+/* Home / landing page: search + per-category cards */
 .home{padding:6px 12px 24px;}
 .home[hidden]{display:none;}
 .home-inner{width:100%; max-width:1340px; margin:0 auto;}
-.home-hero{text-align:center; padding:4px 0 18px;}
-.home-hero h1{
-  font-size:30px; font-weight:800; letter-spacing:-1px;
-  background:linear-gradient(120deg,#3b82f6,#8b5cf6);
-  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-}
-.home-hero p{font-size:12.5px; color:var(--muted); margin:9px auto 0; max-width:760px; line-height:1.55;}
 .home-search{
   display:block; width:100%;
   background:var(--inset); color:var(--txt); border:none; border-radius:999px;

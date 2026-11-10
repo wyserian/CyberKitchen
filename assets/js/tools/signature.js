@@ -102,25 +102,24 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SIG);
-    strip.desc.style.whiteSpace = 'normal';
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
     strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
-    // Left: 2x2 sub-grid (Public key / Algorithm over Private key / Hash). Right: formats.
+    // Left: 2x2 sub-grid (Algorithm / Public key over Hash / Private key). Right: formats.
     var grid = el('div', { class: 'cfg-grid wide-left' });
-    var colL = el('div', { class: 'col2 kv-mp' });
+    var colL = el('div', { class: 'col2 mp-kv' });
     var colR = el('div', { class: 'col' });
-    var algoSel = ui.select(ORDER.map(function (id) { return [id, ALGS[id].label]; }), function (v) { setAlgo(v); }, 'P-256');
+    var algoSel = ui.select(ui.grouped(ORDER, function (id) { var a = ALGS[id]; return a.pq ? 'Post-quantum' : a.rsa ? 'RSA' : a.ec ? 'ECDSA' : 'EdDSA'; }, function (id) { return [id, ALGS[id].label]; }), function (v) { setAlgo(v); }, 'P-256');
     var hashSel = ui.select([['SHA-256', 'SHA-256'], ['SHA-384', 'SHA-384'], ['SHA-512', 'SHA-512']], updateSel, 'SHA-256');
     var msgFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'utf8');
     var sigFmt = ui.select([['base64', 'Base64'], ['base64url', 'Base64 URL-safe'], ['hex', 'Hexadecimal']], null, 'base64');
     var encSel = ui.select([['raw', 'Raw r||s (JOSE / Web Crypto)'], ['der', 'DER (OpenSSL)']], null, 'raw');
     function keyBox(labelText) {
       var ta = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off' });
-      ta.style.flex = '1'; ta.style.fontSize = '11px'; ta.style.minWidth = '0';
+      ta.style.flex = '1'; ta.style.minWidth = '0';
       var wrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
       wrap.appendChild(ta);
       wrap.appendChild(ui.iconBtn(CK.ui.IC.shuffle, 'Generate keypair', doGenerate));
@@ -128,8 +127,10 @@
     }
     var pub = keyBox('Public key'), priv = keyBox('Private key');
     var hashField = ui.field('Hash', hashSel), encField = ui.field('Signature encoding', encSel);
-    colL.appendChild(pub.box); colL.appendChild(ui.field('Algorithm', algoSel));
-    colL.appendChild(priv.box); colL.appendChild(hashField);
+    // Hash sits in its own cell so hiding it (Ed25519, post-quantum) leaves Private key where it is
+    var hashSlot = el('div', { class: 'col' }); hashSlot.appendChild(hashField);
+    colL.appendChild(ui.field('Algorithm', algoSel)); colL.appendChild(pub.box);
+    colL.appendChild(hashSlot); colL.appendChild(priv.box);
     colR.appendChild(ui.field('Message format', msgFmt));
     colR.appendChild(ui.field('Signature format', sigFmt));
     colR.appendChild(encField);
