@@ -58,11 +58,7 @@
   }
 
   var I_JSON = '<path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_CHECK = CK.ui.IC.check;
   var I_TREE = '<rect x="3" y="3" width="6" height="4" rx="1"/><rect x="15" y="10" width="6" height="4" rx="1"/><rect x="15" y="17" width="6" height="4" rx="1"/><path d="M6 7v9a2 2 0 0 0 2 2h7M6 12h9"/>';
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('json', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -72,10 +68,10 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_JSON);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Validate', doValidate));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Validate', doValidate));
     strip.acts.appendChild(ui.iconBtn(I_TREE, 'Tree view', doTree));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
     ui.setSel(strip, 'JSON Toolkit', 'RFC 8259', 'Format, minify, validate and query JSON. Everything runs locally.');
 
@@ -89,7 +85,7 @@
     var pathInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: "$.store.book[*].title" });
     var pathWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     pathInput.style.flex = '1'; pathInput.style.minWidth = '0';
-    var queryBtn = ui.iconBtn(I_OUT, 'Query', doQuery);
+    var queryBtn = ui.iconBtn(CK.ui.IC.out, 'Query', doQuery);
     pathWrap.appendChild(pathInput); pathWrap.appendChild(queryBtn);
     colR.appendChild(ui.field('JSONPath query', pathWrap));
     grid.appendChild(colL); grid.appendChild(colR);
@@ -98,7 +94,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'JSON', icon: I_JSON, placeholder: '{ "hello": "world" }', primaries: [{ label: 'Format', cls: 'enc', onClick: doFormat }, { label: 'Minify', cls: 'dec', onClick: doMinify }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.json', onInput: clearVerify });
-    var outP = ui.textPanel({ title: 'RESULT', icon: I_OUT, placeholder: 'Formatted, minified or queried output...', actions: ['copy', 'download'], downloadName: 'output.json' });
+    var outP = ui.textPanel({ title: 'RESULT', icon: CK.ui.IC.out, placeholder: 'Formatted, minified or queried output...', actions: ['copy', 'download'], downloadName: 'output.json' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

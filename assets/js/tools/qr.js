@@ -28,8 +28,6 @@
   var I_QR = '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M14 20v.01M20 20v.01M17 17v.01"/>';
   var IC_COPY = '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>';
   var IC_DL = '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>';
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
   var LEVELS = ['L', 'M', 'Q', 'H'];
 
   CK.registerTool('qr', function (root, ctx) {
@@ -40,8 +38,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_QR);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });

@@ -80,8 +80,6 @@
   var I_EYE = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
   var IC_COPY = '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>';
   var IC_DL = '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>';
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
   var I_NEW = '<path d="M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>';
   var VARS = ['--bg', '--surf', '--inset', '--inset2', '--txt', '--muted', '--bdr', '--cbdr', '--acc'];
 
@@ -93,8 +91,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_MD);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
     ui.setSel(strip, 'Markdown Viewer', 'live', 'Edit Markdown on the left and see it rendered on the right, in real time. Rendered locally with HTML escaping.');
     root.appendChild(cfg);

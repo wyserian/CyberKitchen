@@ -49,10 +49,6 @@
   }
 
   var I_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_NOW = CK.ui.IC.reset;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('timestamp', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -62,9 +58,9 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CLOCK);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_NOW, 'Now', doNow));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Now', doNow));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -81,7 +77,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'INPUT', icon: I_CLOCK, placeholder: '1700000000  ·  2023-11-14T22:13:20Z  ·  now', primaries: [{ label: 'Convert', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear'], onInput: run });
-    var outP = ui.textPanel({ title: 'REPRESENTATIONS', icon: I_OUT, placeholder: 'All representations appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'timestamp.txt' });
+    var outP = ui.textPanel({ title: 'REPRESENTATIONS', icon: CK.ui.IC.out, placeholder: 'All representations appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'timestamp.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

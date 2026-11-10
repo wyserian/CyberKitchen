@@ -56,8 +56,6 @@
   var I_NEW = '<path d="M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>';
   var IC_CLEAR = '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>';
   var IC_DL = '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>';
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   var LANGS = [
     { id: 'html', label: 'HTML', placeholder: '<!-- HTML markup -->', file: 'index.html' },
@@ -73,8 +71,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_HTML);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
     ui.setSel(strip, 'HTML Viewer', 'live', 'Write HTML, CSS and JavaScript and preview the page live in an isolated sandbox.');
 

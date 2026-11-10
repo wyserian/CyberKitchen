@@ -22,14 +22,7 @@
   var MODES = { CBC: C.mode.CBC, ECB: C.mode.ECB, CFB: C.mode.CFB, OFB: C.mode.OFB, CTR: C.mode.CTR };
   var PADS = { Pkcs7: C.pad.Pkcs7, ZeroPadding: C.pad.ZeroPadding, Iso10126: C.pad.Iso10126, AnsiX923: C.pad.Ansix923, NoPadding: C.pad.NoPadding };
 
-  var I_KEY = CK.ui.IC.key;
   var I_LOCK = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>';
-  var I_SHUF = CK.ui.IC.shuffle;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
-  var I_CHECK = CK.ui.IC.check;
-  var I_DETECT = CK.ui.IC.detect;
 
   var detectFmt = CK.detectFmt, fmtByteLen = CK.fmtByteLen, fmtLabelOf = CK.fmtLabel;
 
@@ -39,12 +32,12 @@
     root.appendChild(ui.head('AES Encrypt / Decrypt'));
 
     var cfg = ui.configPanel();
-    var strip = ui.selStrip(I_KEY);
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    var strip = ui.selStrip(CK.ui.IC.key);
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     function fmtOpt(v) { return { value: v, label: v === 'utf8' ? 'UTF-8' : v === 'hex' ? 'Hexadecimal' : 'Base64' }; }
@@ -56,14 +49,14 @@
 
     var keyInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Encryption key' });
     var keyFmt = ui.select(['utf8', 'hex', 'base64'].map(fmtOpt), function () { updateSel(); }, 'utf8');
-    var keyGen = ui.iconBtn(I_SHUF, 'Random', function () { keyInput.value = randomSecret(32, keyFmt.value); updateSel(); });
+    var keyGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', function () { keyInput.value = randomSecret(32, keyFmt.value); updateSel(); });
     var keyWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     keyInput.style.flex = '1'; keyFmt.style.width = 'auto'; keyWrap.appendChild(keyInput); keyWrap.appendChild(keyFmt); keyWrap.appendChild(keyGen);
     var keyField = ui.field('Key', keyWrap);
 
     var ivInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Initialization vector (16 bytes)' });
     var ivFmt = ui.select(['utf8', 'hex', 'base64'].map(fmtOpt), null, 'hex');
-    var ivGen = ui.iconBtn(I_SHUF, 'Random', function () { ivInput.value = randomSecret(16, ivFmt.value); });
+    var ivGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', function () { ivInput.value = randomSecret(16, ivFmt.value); });
     var ivWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     ivInput.style.flex = '1'; ivFmt.style.width = 'auto'; ivWrap.appendChild(ivInput); ivWrap.appendChild(ivFmt); ivWrap.appendChild(ivGen);
     var ivField = ui.field('Initialization Vector', ivWrap);
@@ -85,7 +78,7 @@
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'INPUT', icon: I_KEY, placeholder: 'Plaintext to encrypt, or ciphertext to decrypt...', primaries: [{ label: 'Encrypt', cls: 'enc', onClick: doEncrypt }, { label: 'Decrypt', cls: 'dec', onClick: doDecrypt }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
+    var inP = ui.textPanel({ title: 'INPUT', icon: CK.ui.IC.key, placeholder: 'Plaintext to encrypt, or ciphertext to decrypt...', primaries: [{ label: 'Encrypt', cls: 'enc', onClick: doEncrypt }, { label: 'Decrypt', cls: 'dec', onClick: doDecrypt }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
     var outP = ui.textPanel({ title: 'OUTPUT', icon: I_LOCK, placeholder: 'Result appears here...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'output.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
@@ -159,7 +152,7 @@
       updateSel();
       ctx.toast('AES · detected ' + fmtLabelOf(fmt) + ' input' + guessed, 'success');
     }
-    function doShare() { var st = { k: keyInput.value, kf: keyFmt.value, iv: ivInput.value, ivf: ivFmt.value, m: modeSel.value, p: padSel.value, cf: ctFmt.value, pf: ptFmt.value, pt: inP.ta.value, ct: outP.ta.value }; CK.share('aes', st, { k: 'key' }); }
+    function doShare() { var st = { k: keyInput.value, kf: keyFmt.value, iv: ivInput.value, ivf: ivFmt.value, m: modeSel.value, p: padSel.value, cf: ctFmt.value, pf: ptFmt.value, pt: inP.ta.value, ct: outP.ta.value }; CK.share('aes', st, { k: 'key', pt: 'plaintext' }); }
     function doReset() { keyInput.value = ''; ivInput.value = ''; inP.ta.value = ''; outP.ta.value = ''; keyFmt.value = 'utf8'; ivFmt.value = 'hex'; modeSel.value = 'CBC'; padSel.value = 'Pkcs7'; ctFmt.value = 'utf8'; ptFmt.value = 'utf8'; updateSel(); ctx.toast('Reset complete', 'success'); }
 
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');

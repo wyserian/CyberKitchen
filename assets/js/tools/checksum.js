@@ -32,11 +32,7 @@
   }
 
   var I_SUM = '<path d="M14 3v5h5M6 3h9l5 5v13H6z"/><path d="m9 14 2 2 4-4"/>';
-  var I_FILE = CK.ui.IC.file;
-  var I_HASH = CK.ui.IC.hash;
   var I_UPLOAD = '<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>';
-  var I_CHECK = CK.ui.IC.check;
-  var I_RESET = CK.ui.IC.reset;
   var IC_CLEAR = '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>';
 
   CK.registerTool('checksum', function (root, ctx) {
@@ -47,8 +43,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SUM);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -65,7 +61,7 @@
     var io = ui.ioRow();
     // File panel: drop zone (styled like the text areas so Verify can colour it)
     var inP = el('div', { class: 'panel io-p' });
-    var hdr = el('div', { class: 'panel-hdr', html: iconSvg(I_FILE, 12) + ' ' });
+    var hdr = el('div', { class: 'panel-hdr', html: iconSvg(CK.ui.IC.file, 12) + ' ' });
     hdr.appendChild(document.createTextNode('FILE'));
     var fill = el('span', { class: 'fill' }), tb = el('span', { class: 'tb' });
     var picker = el('input', { type: 'file', style: 'display:none' });
@@ -74,7 +70,7 @@
     hdr.appendChild(fill); hdr.appendChild(tb);
     var drop = el('div', { class: 'ta cs-drop', tabindex: '0', role: 'button', 'aria-label': 'Choose a file to hash' });
     inP.appendChild(hdr); inP.appendChild(drop); inP.appendChild(picker);
-    var outP = ui.textPanel({ title: 'CHECKSUM', icon: I_HASH, placeholder: 'Checksum appears here. Or paste the expected checksum and press Verify...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'checksum.txt' });
+    var outP = ui.textPanel({ title: 'CHECKSUM', icon: CK.ui.IC.hash, placeholder: 'Checksum appears here. Or paste the expected checksum and press Verify...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'checksum.txt' });
     io.appendChild(inP); io.appendChild(outP.panel);
     root.appendChild(io);
 
@@ -85,7 +81,7 @@
     function clearVerify() { drop.classList.remove('verify-match', 'verify-fail'); outP.ta.classList.remove('verify-match', 'verify-fail'); }
     function showDrop(state) {
       drop.innerHTML = '';
-      drop.appendChild(el('span', { html: iconSvg(file ? I_FILE : I_UPLOAD, 26) }));
+      drop.appendChild(el('span', { html: iconSvg(file ? CK.ui.IC.file : I_UPLOAD, 26) }));
       if (!file) {
         drop.appendChild(el('span', { class: 'cs-name' }, 'Drop a file here, or click to choose'));
       } else {

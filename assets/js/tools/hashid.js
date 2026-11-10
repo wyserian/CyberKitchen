@@ -72,9 +72,6 @@
   }
 
   var I_SEARCH = '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>';
-  var I_HASH = CK.ui.IC.hash;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('hashid', function (root, ctx) {
     var ui = CK.ui;
@@ -84,14 +81,14 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SEARCH);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
     ui.setSel(strip, 'Hash Identifier', 'heuristic', 'Guesses the algorithm from prefix, length and character set. Multiple algorithms often share a length, so treat matches as candidates.');
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'HASH', icon: I_HASH, placeholder: 'Paste a hash, for example 5f4dcc3b5aa765d61d8327deb882cf99', primaries: [{ label: 'Identify', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear'], onInput: run });
+    var inP = ui.textPanel({ title: 'HASH', icon: CK.ui.IC.hash, placeholder: 'Paste a hash, for example 5f4dcc3b5aa765d61d8327deb882cf99', primaries: [{ label: 'Identify', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear'], onInput: run });
     var outP = ui.textPanel({ title: 'LIKELY ALGORITHMS', icon: I_SEARCH, placeholder: 'Candidate algorithms appear here...', readonly: true, actions: ['copy'] });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);

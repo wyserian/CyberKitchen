@@ -109,6 +109,8 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   ok(hex(AM.eaxEnc(hb('91945d3f4dcbee0bf45ef52255f095a4'), hb('becaf043b0a23d843194ba972c66debd'), hb('f7fb'), hb('fa3bfd4806eb53fa'))) === '19dd5c4c9331049d0bdab0277408f67967e5', 'aes-eax: published test vector');
   ok(hex(AM.ocb(seq(0, 15), hb('bbaa99887766554433221107'), seq(0, 23), seq(0, 23))) === '1ca2207308c87c010756104d8840ce1952f09673a448a122c92c62241051f57356d7f3c90bb0e07f', 'aes-ocb3: RFC 7253 sample');
   ok(hex(AM.xts(hb('fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0bfbebdbcbbbab9b8b7b6b5b4b3b2b1b0'), hb('9a78563412' + '00'.repeat(11)), seq(0, 16))) === '6c1625db4671522d3d7599601de7ca09ed', 'aes-xts: IEEE 1619 vector 15 (ciphertext stealing)');
+  var ccmErr = ''; try { AM.ccmEnc(new Uint8Array(16), new Uint8Array(13), new Uint8Array(65536), new Uint8Array(0)); } catch (e) { ccmErr = e.message; }
+  ok(/too long for a 13-byte CCM nonce/.test(ccmErr) && AM.ccmEnc(new Uint8Array(16), new Uint8Array(12), new Uint8Array(65536), new Uint8Array(0)).length === 65552, 'aes-ccm: refuses messages its length field cannot hold');
 
   /* Symmetric Ciphers tool: NIST GCM vector, every algorithm round-trips, tampering is caught, keys stay out of links */
   var Y = mount('cipher'), yin = Y.tas[0], yout = Y.tas[1];
@@ -131,6 +133,9 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   clip = null; Y.byTitle('Share').fire('click'); await sleep(10);
   var ylink = JSON.parse(CK.b64uDec(/s=([\w-]+)/.exec(clip || '')[1]));
   ok(ylink.a === 'aes-ocb' && !('k' in ylink) && ylink.n, 'cipher: share link carries the nonce but not the key');
+  ok(!('in' in ylink), 'cipher: share link leaves the input text out by default');
+  set(Y.field('Algorithm'), 'rabbit'); ykey.children[2].fire('click'); set(ynonce.children[0], '01020304'); set(yin, PT); Y.prim('Encrypt').fire('click');
+  ok(/takes no IV or an 8-byte IV/.test(last()), 'cipher: Rabbit rejects a 4-byte IV');
 
   /* Key Exchange: RFC 7748 vectors, ECDH and MODP DH against Node, KEM round trips */
   var KX = function () { var t = mount('keyx'); return { t: t, priv: t.field('Your private key').children[0], pub: t.field('Your public key'), gen: t.byTitle('Generate keypair') }; };
@@ -196,6 +201,17 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   ok(await hashOf('BLAKE', 'blake2b', 'abc') === 'ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923', 'hash: BLAKE2b-512 (RFC 7693)');
   ok(await hashOf('BLAKE', 'blake3', 'abc') === '6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85', 'hash: BLAKE3');
   ok(await hashOf('Checksum', 'murmur3', 'hello') === '248bfa47', 'hash: MurmurHash3');
+  ok(await hashOf('SHA-3', 'sha3-256', 'abc') === '3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532' &&
+    await hashOf('SHA-3', 'keccak-256', 'abc') === '4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45', 'hash: SHA3-256 and Keccak-256 (FIPS 202 / Keccak vectors)');
+  /* HMAC is built by hand from each hash's block size: compare with Node for every family */
+  var hmCb = all(H.root).filter(function (n) { return n.attrs.type === 'checkbox'; })[0], hmKey = H.field('Key').children[0], hmBad = [];
+  hmCb.checked = true; hmCb.fire('change'); set(hmKey, 'k'.repeat(200));
+  for (var hc of [['Legacy', 'md5', 'md5'], ['Legacy', 'ripemd160', 'ripemd160'], ['SHA-2', 'sha224', 'sha224'], ['SHA-2', 'sha384', 'sha384'], ['SHA-2', 'sha512-224', 'sha512-224'],
+    ['SHA-2', 'sha512-256', 'sha512-256'], ['SHA-3', 'sha3-224', 'sha3-224'], ['SHA-3', 'sha3-512', 'sha3-512'], ['BLAKE', 'blake2b', 'blake2b512'], ['BLAKE', 'blake2s', 'blake2s256']]) {
+    if (await hashOf(hc[0], hc[1], 'hmac message') !== nc.createHmac(hc[2], 'k'.repeat(200)).update('hmac message').digest('hex')) hmBad.push(hc[1]);
+  }
+  ok(hmBad.length === 0, 'hash: HMAC matches Node for 10 algorithms (long key)' + (hmBad.length ? ': ' + hmBad.join(', ') : ''));
+  set(hmKey, ''); hmCb.checked = false; hmCb.fire('change');
   ok(hex(Noble.shake128(new Uint8Array(0), { dkLen: 32 })) === '7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26' &&
     hex(Noble.blake256(new Uint8Array(0))) === '716f6e863f744b9ac22c97ec7b76ea5f5908bc5b2f67c61510bfc4751384ea7a', 'hash: SHAKE128 and BLAKE-256 of empty input');
   set(H.field('Checksum'), 'siphash');

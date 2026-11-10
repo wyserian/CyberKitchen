@@ -38,9 +38,6 @@
   function binOctets(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].map(function (x) { return x.toString(2).padStart(8, '0'); }).join('.'); }
 
   var I_GLOBE = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('ipconv', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -50,8 +47,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_GLOBE);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -65,7 +62,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'INPUT', icon: I_GLOBE, placeholder: '192.168.1.10  ·  3232235786  ·  0xC0A8010A  ·  binary', primaries: [{ label: 'Convert', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear'], onInput: run });
-    var outP = ui.textPanel({ title: 'REPRESENTATIONS', icon: I_OUT, placeholder: 'All representations appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'ip.txt' });
+    var outP = ui.textPanel({ title: 'REPRESENTATIONS', icon: CK.ui.IC.out, placeholder: 'All representations appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'ip.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

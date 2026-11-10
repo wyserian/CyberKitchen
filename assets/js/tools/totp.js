@@ -41,10 +41,6 @@
   }
 
   var I_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
-  var I_KEY = CK.ui.IC.key;
-  var I_SHUF = CK.ui.IC.shuffle;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('totp', function (root, ctx) {
     var ui = CK.ui, el = CK.el, mode = 'totp';
@@ -54,9 +50,9 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CLOCK);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHUF, 'Random', doRandom));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.shuffle, 'Random', doRandom));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // Left: 2x2 of Mode / Algorithm over Digits / (Period or Counter). Right: secret format.
@@ -87,7 +83,7 @@
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'SHARED SECRET', icon: I_KEY, placeholder: 'Base32 secret, e.g. JBSWY3DPEHPK3PXP', primaries: [{ label: 'Generate', cls: 'enc', onClick: doGenerate }], actions: ['copy', 'paste', 'clear'], onInput: regen });
+    var inP = ui.textPanel({ title: 'SHARED SECRET', icon: CK.ui.IC.key, placeholder: 'Base32 secret, e.g. JBSWY3DPEHPK3PXP', primaries: [{ label: 'Generate', cls: 'enc', onClick: doGenerate }], actions: ['copy', 'paste', 'clear'], onInput: regen });
     var outP = ui.textPanel({ title: 'ONE-TIME CODE', icon: I_CLOCK, placeholder: 'Code appears here...', readonly: true, actions: ['copy'] });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);

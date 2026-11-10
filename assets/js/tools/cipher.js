@@ -12,7 +12,7 @@
   var toHex = CK.toHex, hexToBytes = CK.hexToBytes, b64 = CK.b64, b64uDec = CK.b64uDec;
   var ENC = new TextEncoder(), C = window.CryptoJS;
 
-  function cat() { var n = 0, i; for (i = 0; i < arguments.length; i++) n += arguments[i].length; var o = new Uint8Array(n), p = 0; for (i = 0; i < arguments.length; i++) { o.set(arguments[i], p); p += arguments[i].length; } return o; }
+  var cat = CK.cat;
   function xor(a, b) { var o = new Uint8Array(a.length); for (var i = 0; i < a.length; i++) o[i] = a[i] ^ b[i]; return o; }
   function eq(a, b) { if (a.length !== b.length) return false; var d = 0; for (var i = 0; i < a.length; i++) d |= a[i] ^ b[i]; return d === 0; }
   function pad16(x) { var r = x.length % 16; return r ? cat(x, new Uint8Array(16 - r)) : x; }
@@ -35,10 +35,15 @@
   }
   // Counter blocks A_0 (masks the tag) then A_1.. (data); a full-width increment equals CCM's q-byte counter at these sizes
   function ccmCtr(k, n, d) { var a0 = new Uint8Array(16); a0[0] = 14 - n.length; a0.set(n, 1); var s = Noble.ctr(k, a0).encrypt(cat(new Uint8Array(16), d)); return [s.subarray(0, 16), s.subarray(16)]; }
-  function ccmCheck(n, M) { if (n.length < 7 || n.length > 13) throw new Error('CCM nonce must be 7 to 13 bytes'); if (M < 4 || M > 16 || M % 2) throw new Error('CCM tag must be 4 to 16 bytes, even'); }
-  function ccmEnc(k, n, pt, aad, M) { M = M || 16; ccmCheck(n, M); var r = ccmCtr(k, n, pt); return cat(r[1], xor(ccmMac(k, n, aad, pt, M), r[0].subarray(0, M))); }
+  // The message length is stored in 15 - nonce bytes, e.g. at most 65,535 bytes with a 13-byte nonce
+  function ccmCheck(n, M, len) {
+    if (n.length < 7 || n.length > 13) throw new Error('CCM nonce must be 7 to 13 bytes');
+    if (M < 4 || M > 16 || M % 2) throw new Error('CCM tag must be 4 to 16 bytes, even');
+    if (len >= Math.pow(2, 8 * (15 - n.length))) throw new Error('Message too long for a ' + n.length + '-byte CCM nonce: use a shorter nonce (e.g. 12 bytes allows 16 MB)');
+  }
+  function ccmEnc(k, n, pt, aad, M) { M = M || 16; ccmCheck(n, M, pt.length); var r = ccmCtr(k, n, pt); return cat(r[1], xor(ccmMac(k, n, aad, pt, M), r[0].subarray(0, M))); }
   function ccmDec(k, n, c, aad, M) {
-    M = M || 16; ccmCheck(n, M); var p = split(c, M), r = ccmCtr(k, n, p[0]);
+    M = M || 16; ccmCheck(n, M, Math.max(0, c.length - M)); var p = split(c, M), r = ccmCtr(k, n, p[0]);
     if (!eq(xor(ccmMac(k, n, aad, r[1], M), r[0].subarray(0, M)), p[1])) authFail();
     return r[1];
   }
@@ -146,7 +151,7 @@
     { id: 'xchacha20', label: 'XChaCha20', group: 'Stream', badge: 'XChaCha', keys: [32], nonce: [24, 24, 24], f: stream(function (k, n, d) { return Noble.xchacha20(k, n, d); }) },
     { id: 'salsa20', label: 'Salsa20', group: 'Stream', badge: 'eSTREAM', keys: [32], nonce: [8, 8, 8], f: stream(function (k, n, d) { return Noble.salsa20(k, n, d); }) },
     { id: 'xsalsa20', label: 'XSalsa20', group: 'Stream', badge: 'NaCl', keys: [32], nonce: [24, 24, 24], f: stream(function (k, n, d) { return Noble.xsalsa20(k, n, d); }) },
-    { id: 'rabbit', label: 'Rabbit', group: 'Stream', badge: 'RFC 4503', keys: [16], nonce: [0, 8, 8], f: cjs(C.Rabbit) },
+    { id: 'rabbit', label: 'Rabbit', group: 'Stream', badge: 'RFC 4503', keys: [16], nonce: [0, 8, 8], only: [0, 8], nonceName: 'IV', f: cjs(C.Rabbit) },
     { id: 'rc4', label: 'RC4 (broken)', group: 'Stream', badge: 'Legacy', keys: [], nonce: [0, 0, 0], f: cjs(C.RC4) },
     { id: 'aes-xts', label: 'AES-XTS (disk sectors)', group: 'Block', badge: 'IEEE 1619', keys: [32, 64], nonce: [16, 16, 16], nonceName: 'tweak', f: { enc: function (k, n, d) { return xts(k, n, d, false); }, dec: function (k, n, d) { return xts(k, n, d, true); } } },
     { id: 'aes-kw', label: 'AES Key Wrap', group: 'Block', badge: 'RFC 3394', keys: A16, nonce: [0, 0, 0], f: kw(function (k) { return Noble.aeskw(k); }, 'Key wrap') },
@@ -158,7 +163,7 @@
   var GROUP_NAME = { AEAD: 'Authenticated', Stream: 'Stream', Block: 'Block / wrap' };
 
   var I_SYM = '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/>';
-  var I_IN = CK.ui.IC.file, I_OUT = '<path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v10H5z"/>';
+  var I_OUT = '<path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v10H5z"/>';
 
   CK.registerTool('cipher', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'chacha20poly1305';
@@ -201,7 +206,7 @@
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'INPUT', icon: I_IN, placeholder: 'Plaintext to encrypt, or ciphertext to decrypt...', primaries: [{ label: 'Encrypt', cls: 'enc', onClick: doEncrypt }, { label: 'Decrypt', cls: 'dec', onClick: doDecrypt }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
+    var inP = ui.textPanel({ title: 'INPUT', icon: CK.ui.IC.file, placeholder: 'Plaintext to encrypt, or ciphertext to decrypt...', primaries: [{ label: 'Encrypt', cls: 'enc', onClick: doEncrypt }, { label: 'Decrypt', cls: 'dec', onClick: doDecrypt }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
     var outP = ui.textPanel({ title: 'OUTPUT', icon: I_OUT, placeholder: 'Result appears here...', actions: ['copy', 'clear', 'download'], downloadName: 'output.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
@@ -211,10 +216,10 @@
       var a = get(id); if (!a) return; current = id; algoSel.value = id;
       var nn = a.nonceName || 'nonce', n = a.nonce;
       nonce.field.style.display = n[1] ? '' : 'none';
-      nonce.inp.placeholder = (n[0] ? '' : 'Optional ') + (n[0] === n[1] ? n[1] + '-byte ' : n[0] + ' to ' + n[1] + ' bytes, ') + nn;
+      nonce.inp.placeholder = (n[0] ? '' : 'Optional ') + (n[0] === n[1] || a.only ? n[1] + '-byte ' : n[0] + ' to ' + n[1] + ' bytes, ') + nn;
       aadField.style.display = a.aad ? '' : 'none';
       key.inp.placeholder = sizes(a);
-      var desc = sizes(a) + (n[1] ? ', ' + (n[0] === n[1] ? n[1] + '-byte ' : n[0] + '-' + n[1] + ' byte ') + nn : '') +
+      var desc = sizes(a) + (n[1] ? ', ' + (n[0] === n[1] ? n[1] + '-byte ' : a.only ? 'optional ' + n[1] + '-byte ' : n[0] + '-' + n[1] + ' byte ') + nn : '') +
         (a.group === 'AEAD' ? '. Output is ciphertext + 16-byte tag; tampering is detected.' : a.badge === 'Legacy' ? '. Not secure: for old data only.' : a.group === 'Stream' ? '. No integrity check: pair with a MAC or use an AEAD.' : '.') +
         (n[0] && a.id !== 'aes-xts' ? ' Never reuse a nonce with the same key.' : '');
       ui.setSel(strip, a.label, a.badge, desc);
@@ -223,6 +228,7 @@
       var k = key.bytes(), n = a.nonce[1] ? nonce.bytes() : new Uint8Array(0);
       if (!k.length) throw new Error('Key is required');
       if (a.keys.length ? a.keys.indexOf(k.length) < 0 : k.length > 256) throw new Error(a.label + ' needs a ' + sizes(a) + ' (got ' + k.length + ' bytes)');
+      if (a.only && a.only.indexOf(n.length) < 0) throw new Error(a.label + ' takes no IV or an 8-byte IV (got ' + n.length + ' bytes)');
       if (n.length < a.nonce[0] || n.length > a.nonce[1]) throw new Error(a.label + ' needs a ' + (a.nonce[0] === a.nonce[1] ? a.nonce[1] + '-byte' : a.nonce[0] + ' to ' + a.nonce[1] + ' byte') + ' ' + (a.nonceName || 'nonce') + ' (got ' + n.length + ')');
       return { k: k, n: n, ad: ENC.encode(aadInp.value) };
     }
@@ -253,7 +259,7 @@
     }
     function doSwap() { inP.ta.value = outP.ta.value; outP.ta.value = ''; }
     function doShare() {
-      CK.share('cipher', { a: current, kf: key.fmt.value, k: key.inp.value, nf: nonce.fmt.value, n: nonce.inp.value, ad: aadInp.value, pf: ptFmt.value, cf: ctFmt.value, in: inP.ta.value }, { k: 'key' });
+      CK.share('cipher', { a: current, kf: key.fmt.value, k: key.inp.value, nf: nonce.fmt.value, n: nonce.inp.value, ad: aadInp.value, pf: ptFmt.value, cf: ctFmt.value, in: inP.ta.value }, { k: 'key', in: 'input text' });
     }
     function doReset() {
       inP.ta.value = ''; outP.ta.value = ''; key.inp.value = ''; nonce.inp.value = ''; aadInp.value = '';

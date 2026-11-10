@@ -12,7 +12,7 @@
   var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, pem = CK.pem, unpem = CK.unpem;
 
   /* Minimal DER helpers */
-  function cat() { var n = 0, i, parts = Array.prototype.map.call(arguments, function (p) { return p instanceof Uint8Array ? p : new Uint8Array(p); }); for (i = 0; i < parts.length; i++) n += parts[i].length; var o = new Uint8Array(n), off = 0; for (i = 0; i < parts.length; i++) { o.set(parts[i], off); off += parts[i].length; } return o; }
+  var cat = CK.cat, later = CK.later;
   function derLen(n) { return n < 128 ? [n] : n < 256 ? [0x81, n] : [0x82, n >> 8, n & 255]; }
   function der(tag, body) { return cat([tag], derLen(body.length), body); }
   // ECDSA raw r||s (Web Crypto / JOSE) -> DER SEQUENCE { INTEGER r, INTEGER s } (OpenSSL)
@@ -92,8 +92,6 @@
     return b;
   }
   function keyText(b) { return b.length <= 64 ? toHex(b) : b64(b); }
-  // Heavy post-quantum work runs after a tick so the button spinner can show first
-  function later(fn) { return new Promise(function (res, rej) { setTimeout(function () { try { res(fn()); } catch (e) { rej(e); } }, 20); }); }
 
   var I_SIG = '<path d="M3 17c3-3 5-8 7-8s-1 7 1 7 3-4 4-4 1 3 3 3h3M3 21h18"/>';
 

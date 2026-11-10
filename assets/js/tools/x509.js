@@ -124,9 +124,6 @@
   }
 
   var I_CERT = '<rect x="4" y="3" width="16" height="13" rx="2"/><circle cx="12" cy="8" r="2.5"/><path d="M9.5 14l-1 6 3.5-2 3.5 2-1-6"/>';
-  var I_FILE = CK.ui.IC.file;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('x509', function (root, ctx) {
     var ui = CK.ui;
@@ -136,14 +133,14 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CERT);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
     ui.setSel(strip, 'X.509 Certificate', 'PEM', 'Paste a PEM certificate (-----BEGIN CERTIFICATE-----) to read its fields and fingerprints. Parsed locally, nothing leaves your browser.');
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'CERTIFICATE (PEM)', icon: I_FILE, placeholder: '-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----', primaries: [{ label: 'Decode', cls: 'enc', onClick: doDecode }], actions: ['copy', 'paste', 'clear'] });
+    var inP = ui.textPanel({ title: 'CERTIFICATE (PEM)', icon: CK.ui.IC.file, placeholder: '-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----', primaries: [{ label: 'Decode', cls: 'enc', onClick: doDecode }], actions: ['copy', 'paste', 'clear'] });
     var outP = ui.textPanel({ title: 'DECODED', icon: I_CERT, placeholder: 'Certificate fields appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'certificate.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);

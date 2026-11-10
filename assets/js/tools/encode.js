@@ -213,13 +213,7 @@
 
   /* Share-URL state (base64url of JSON) */
 
-  var I_FILE = CK.ui.IC.file;
   var I_CODE = '<path d="M7 7 3 12l4 5M17 7l4 5-4 5M14 4l-4 16"/>';
-  var I_CHECK = CK.ui.IC.check;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_DETECT = CK.ui.IC.detect;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('encode', function (root, ctx) {
     var ui = CK.ui, current = 'base64';
@@ -228,11 +222,11 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_CODE);
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // One dropdown per encoding group; picking from one clears the others
@@ -249,7 +243,7 @@
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'INPUT', icon: I_FILE, placeholder: 'Text to encode, or encoded data to decode...', primaries: [{ label: 'Encode', cls: 'enc', onClick: doEncode }, { label: 'Decode', cls: 'dec', onClick: doDecode }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt', onInput: clearVerify });
+    var inP = ui.textPanel({ title: 'INPUT', icon: CK.ui.IC.file, placeholder: 'Text to encode, or encoded data to decode...', primaries: [{ label: 'Encode', cls: 'enc', onClick: doEncode }, { label: 'Decode', cls: 'dec', onClick: doDecode }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt', onInput: clearVerify });
     var outP = ui.textPanel({ title: 'OUTPUT', icon: I_CODE, placeholder: 'Result appears here...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'output.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
@@ -286,15 +280,5 @@
     var m = /(?:^|[#&])s=([\w-]+)/.exec(location.hash || '');
     if (m) { try { var st = JSON.parse(b64uDec(m[1])); if (st.in != null) inP.ta.value = st.in; if (st.out != null) outP.ta.value = st.out; if (st.enc) current = st.enc; } catch (e) { } }
     select(current);
-
-    return {
-      reset: doReset,
-      onKey: function (e) {
-        if (!(e.ctrlKey || e.metaKey)) return;
-        var k = String(e.key).toLowerCase();
-        if (k === 'e') { e.preventDefault(); doEncode(); }
-        else if (k === 'd') { e.preventDefault(); doDecode(); }
-      }
-    };
   });
 })();

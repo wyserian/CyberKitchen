@@ -62,11 +62,6 @@
 
   var I_TOKEN = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>';
   var I_JSON = '<path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/>';
-  var I_CHECK = CK.ui.IC.check;
-  var I_SHUF = CK.ui.IC.shuffle;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
-  var I_SWAP = CK.ui.IC.swap;
   var I_NEW = '<path d="M12 5v14M5 12h14"/>';
 
   // { header:{...}, payload:{...} } as produced by Edit / New token
@@ -93,11 +88,11 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_TOKEN);
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
     strip.acts.appendChild(ui.iconBtn(I_NEW, 'New token', doNew));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-right' }); // Algorithm first, then its secret / keys
@@ -110,7 +105,7 @@
     // HMAC secret (HS*)
     var secretInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'HMAC secret' });
     var secretFmt = ui.select([['utf8', 'UTF-8'], ['base64', 'Base64'], ['hex', 'Hexadecimal']], null, 'utf8');
-    var secretGen = ui.iconBtn(I_SHUF, 'Random', function () { secretInput.value = randomSecret(32, secretFmt.value); });
+    var secretGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', function () { secretInput.value = randomSecret(32, secretFmt.value); });
     var secretWrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     secretInput.style.flex = '1'; secretInput.style.minWidth = '0'; secretFmt.style.width = 'auto';
     secretWrap.appendChild(secretInput); secretWrap.appendChild(secretFmt); secretWrap.appendChild(secretGen);
@@ -126,7 +121,7 @@
       return { field: ui.field(labelText, wrap), input: input, wrap: wrap };
     }
     var pub = keyBox('Public key'), priv = keyBox('Private key');
-    var genBtn = ui.iconBtn(I_SHUF, 'Generate keypair', doGenerate);
+    var genBtn = ui.iconBtn(CK.ui.IC.shuffle, 'Generate keypair', doGenerate);
     priv.wrap.appendChild(genBtn);
     pub.field.style.display = 'none'; priv.field.style.display = 'none';
     colL.appendChild(pub.field); colL.appendChild(priv.field);

@@ -22,8 +22,6 @@
   var PRESETS = { pci: { len: 12, sets: ['upper', 'lower', 'digits', 'symbols'] }, nist: { len: 16, sets: ['upper', 'lower', 'digits', 'symbols'] }, hipaa: { len: 12, sets: ['upper', 'lower', 'digits', 'symbols'] }, owasp: { len: 14, sets: ['upper', 'lower', 'digits', 'symbols'] } };
 
   var I_DICE = '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/>';
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('password', function (root, ctx) {
     var ui = CK.ui, el = CK.el, mode = 'custom';
@@ -32,8 +30,8 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DICE);
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var presetPk = ui.picker([{ label: 'Policy preset', items: [{ id: 'pci', label: 'PCI-DSS' }, { id: 'nist', label: 'NIST' }, { id: 'hipaa', label: 'HIPAA' }, { id: 'owasp', label: 'OWASP' }] }], applyPreset);
@@ -225,11 +223,6 @@
       } catch (e) { }
     }
     applyMode(); generate();
-
-    return {
-      reset: doReset,
-      onKey: function (e) { if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'g') { e.preventDefault(); generate(); } }
-    };
     function doShare() {
       CK.share('password', {
         m: mode, l: +lenRange.value, q: +qtyInput.value,

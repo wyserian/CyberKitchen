@@ -191,10 +191,6 @@
   }
 
   var I_TEXT = '<path d="M4 6h16M4 12h10M4 18h7"/><path d="m18 14 1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('text', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -204,9 +200,9 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_TEXT);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // Mode first; only the chosen mode's options are shown next to it
@@ -248,7 +244,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'INPUT', icon: I_TEXT, placeholder: 'Paste text, logs or HTML...', primaries: [{ label: 'Apply', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt', onInput: run });
-    var outP = ui.textPanel({ title: 'OUTPUT', icon: I_OUT, placeholder: 'Result appears here...', readonly: true, actions: ['copy', 'download'], downloadName: 'output.txt' });
+    var outP = ui.textPanel({ title: 'OUTPUT', icon: CK.ui.IC.out, placeholder: 'Result appears here...', readonly: true, actions: ['copy', 'download'], downloadName: 'output.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

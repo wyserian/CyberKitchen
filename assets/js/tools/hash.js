@@ -8,7 +8,7 @@
 (function () {
   'use strict';
   var b64uDec = CK.b64uDec, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, randomSecret = CK.randomSecret;
-  function concat(a, b) { var o = new Uint8Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
+  var concat = CK.cat;
   function webBytes(algo, b) { return crypto.subtle.digest(algo, b).then(function (h) { return new Uint8Array(h); }); }
   function P(hex) { return Promise.resolve(hexToBytes(hex)); }
 
@@ -19,23 +19,23 @@
   // hmac: false = not a keyed-hash candidate; keyed = needs its own key (SipHash).
   // Shared with File Checksum (CK.hashAlgos), so both tools offer the same list.
   var ALGOS = [
-    { id: 'md5', label: 'MD5', group: 'Legacy', badge: 'RFC 1321', bytes: 16, block: 64, hb: L('md5') },
+    { id: 'md5', label: 'MD5', group: 'Legacy', badge: 'RFC 1321', bytes: 16, block: 64, hb: N('md5') },
     { id: 'sha1', label: 'SHA-1', group: 'Legacy', badge: 'FIPS 180', bytes: 20, block: 64, hb: function (b) { return webBytes('SHA-1', b); } },
-    { id: 'ripemd160', label: 'RIPEMD-160', group: 'Legacy', badge: 'RIPEMD', bytes: 20, block: 64, hb: function (b) { return P(HashLib.ripemd160(b)); } },
+    { id: 'ripemd160', label: 'RIPEMD-160', group: 'Legacy', badge: 'RIPEMD', bytes: 20, block: 64, hb: N('ripemd160') },
     { id: 'sha224', label: 'SHA-224', group: 'SHA-2', badge: 'FIPS 180', bytes: 28, block: 64, hb: N('sha224') },
     { id: 'sha256', label: 'SHA-256', group: 'SHA-2', badge: 'FIPS 180', bytes: 32, block: 64, hb: function (b) { return webBytes('SHA-256', b); } },
     { id: 'sha384', label: 'SHA-384', group: 'SHA-2', badge: 'FIPS 180', bytes: 48, block: 128, hb: function (b) { return webBytes('SHA-384', b); } },
     { id: 'sha512', label: 'SHA-512', group: 'SHA-2', badge: 'FIPS 180', bytes: 64, block: 128, hb: function (b) { return webBytes('SHA-512', b); } },
     { id: 'sha512-224', label: 'SHA-512/224', group: 'SHA-2', badge: 'FIPS 180', bytes: 28, block: 128, hb: N('sha512_224') },
     { id: 'sha512-256', label: 'SHA-512/256', group: 'SHA-2', badge: 'FIPS 180', bytes: 32, block: 128, hb: N('sha512_256') },
-    { id: 'sha3-224', label: 'SHA3-224', group: 'SHA-3', badge: 'FIPS 202', bytes: 28, block: 144, hb: function (b) { return P(HashLib.sha3(224, b)); } },
-    { id: 'sha3-256', label: 'SHA3-256', group: 'SHA-3', badge: 'FIPS 202', bytes: 32, block: 136, hb: function (b) { return P(HashLib.sha3(256, b)); } },
-    { id: 'sha3-384', label: 'SHA3-384', group: 'SHA-3', badge: 'FIPS 202', bytes: 48, block: 104, hb: function (b) { return P(HashLib.sha3(384, b)); } },
-    { id: 'sha3-512', label: 'SHA3-512', group: 'SHA-3', badge: 'FIPS 202', bytes: 64, block: 72, hb: function (b) { return P(HashLib.sha3(512, b)); } },
+    { id: 'sha3-224', label: 'SHA3-224', group: 'SHA-3', badge: 'FIPS 202', bytes: 28, block: 144, hb: N('sha3_224') },
+    { id: 'sha3-256', label: 'SHA3-256', group: 'SHA-3', badge: 'FIPS 202', bytes: 32, block: 136, hb: N('sha3_256') },
+    { id: 'sha3-384', label: 'SHA3-384', group: 'SHA-3', badge: 'FIPS 202', bytes: 48, block: 104, hb: N('sha3_384') },
+    { id: 'sha3-512', label: 'SHA3-512', group: 'SHA-3', badge: 'FIPS 202', bytes: 64, block: 72, hb: N('sha3_512') },
     { id: 'shake128', label: 'SHAKE128 (256-bit)', group: 'SHA-3', badge: 'FIPS 202', bytes: 32, hmac: false, hb: N('shake128', { dkLen: 32 }) },
     { id: 'shake256', label: 'SHAKE256 (512-bit)', group: 'SHA-3', badge: 'FIPS 202', bytes: 64, hmac: false, hb: N('shake256', { dkLen: 64 }) },
     { id: 'keccak-224', label: 'Keccak-224', group: 'SHA-3', badge: 'Keccak', bytes: 28, block: 144, hb: N('keccak_224') },
-    { id: 'keccak-256', label: 'Keccak-256', group: 'SHA-3', badge: 'Keccak', bytes: 32, block: 136, hb: function (b) { return P(HashLib.keccak(256, b)); } },
+    { id: 'keccak-256', label: 'Keccak-256', group: 'SHA-3', badge: 'Keccak', bytes: 32, block: 136, hb: N('keccak_256') },
     { id: 'keccak-384', label: 'Keccak-384', group: 'SHA-3', badge: 'Keccak', bytes: 48, block: 104, hb: N('keccak_384') },
     { id: 'keccak-512', label: 'Keccak-512', group: 'SHA-3', badge: 'Keccak', bytes: 64, block: 72, hb: N('keccak_512') },
     { id: 'blake224', label: 'BLAKE-224', group: 'BLAKE', badge: 'SHA-3 finalist', bytes: 28, block: 64, hb: N('blake224') },
@@ -61,7 +61,7 @@
   function get(id) { for (var i = 0; i < ALGOS.length; i++) if (ALGOS[i].id === id) return ALGOS[i]; return null; }
   CK.hashAlgos = ALGOS;
   var GROUPS = ['Legacy', 'SHA-2', 'SHA-3', 'BLAKE', 'Checksum'];
-  var BY_LEN = { 4: 'crc32', 16: 'md5', 20: 'sha1', 28: 'sha3-224', 32: 'sha256', 48: 'sha384', 64: 'sha512' };
+  var BY_LEN = { 4: 'crc32', 8: 'crc64', 16: 'md5', 20: 'sha1', 28: 'sha3-224', 32: 'sha256', 48: 'sha384', 64: 'sha512' };
 
   function hmac(algo, keyBytes, msgBytes) {
     var bs = algo.block;
@@ -74,27 +74,18 @@
   function fmtHex(hx, fmt) { if (fmt === 'HEX') return hx.toUpperCase(); if (fmt === 'base64') return b64(hexToBytes(hx)); if (fmt === 'base64url') return CK.b64u(hexToBytes(hx)); return hx; }
   function outByteLen(s) { s = s.trim().replace(/\s/g, ''); if (/^[0-9a-fA-F]+$/.test(s) && s.length % 2 === 0) return s.length / 2; try { return unb64(s).length; } catch (e) { return null; } }
 
-  var I_HASH = CK.ui.IC.hash;
-  var I_FILE = CK.ui.IC.file;
-  var I_CHECK = CK.ui.IC.check;
-  var I_DETECT = CK.ui.IC.detect;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
-  var I_SHUF = CK.ui.IC.shuffle;
-
   CK.registerTool('hash', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'sha256';
 
     root.appendChild(ui.head('Cryptographic Hash'));
 
     var cfg = ui.configPanel();
-    var strip = ui.selStrip(I_HASH);
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    var strip = ui.selStrip(CK.ui.IC.hash);
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // Left column split into two sub-columns: algorithm picker | HMAC. Right column: formats.
@@ -122,7 +113,7 @@
     hmacWrap.appendChild(hmacSwitch);
     var keyInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'HMAC key' });
     var keyFmt = ui.select([['utf8', 'UTF-8'], ['hex', 'Hexadecimal'], ['base64', 'Base64']], null, 'utf8');
-    var keyGen = ui.iconBtn(I_SHUF, 'Random', genKey);
+    var keyGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', genKey);
     var keyWrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     keyInput.style.flex = '1'; keyInput.style.minWidth = '0'; keyFmt.style.width = 'auto'; keyWrap.appendChild(keyInput); keyWrap.appendChild(keyFmt); keyWrap.appendChild(keyGen);
     var keyField = ui.field('Key', keyWrap); keyField.style.display = 'none';
@@ -151,8 +142,8 @@
     function genKey() { var a = get(current); keyInput.value = randomSecret(a.keyed || a.bytes || 32, keyFmt.value); if (!a.keyed) hmacCb.checked = true; syncKey(); }
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'INPUT', icon: I_FILE, placeholder: 'Text to hash...', primaries: [{ label: 'Hash', cls: 'enc', onClick: doHash }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
-    var outP = ui.textPanel({ title: 'OUTPUT', icon: I_HASH, placeholder: 'Digest appears here...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'digest.txt' });
+    var inP = ui.textPanel({ title: 'INPUT', icon: CK.ui.IC.file, placeholder: 'Text to hash...', primaries: [{ label: 'Hash', cls: 'enc', onClick: doHash }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
+    var outP = ui.textPanel({ title: 'OUTPUT', icon: CK.ui.IC.hash, placeholder: 'Digest appears here...', actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'digest.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

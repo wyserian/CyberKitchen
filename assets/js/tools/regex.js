@@ -23,9 +23,6 @@
   ];
 
   var I_REGEX = '<path d="M17 3v6M14.5 4.5l5 3M14.5 7.5l5-3M5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM7 14V4"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('regex', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -35,8 +32,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_REGEX);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -65,7 +62,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'TEST STRING', icon: I_REGEX, placeholder: 'Text to test the pattern against...', primaries: [{ label: 'Test', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear'], onInput: run });
-    var outP = ui.textPanel({ title: 'MATCHES', icon: I_OUT, placeholder: 'Matches and capture groups appear here...', readonly: true, actions: ['copy'] });
+    var outP = ui.textPanel({ title: 'MATCHES', icon: CK.ui.IC.out, placeholder: 'Matches and capture groups appear here...', readonly: true, actions: ['copy'] });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

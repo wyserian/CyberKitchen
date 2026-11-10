@@ -24,13 +24,6 @@
   }
 
   var I_DROP = '<path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 2-6 5-10z"/>';
-  var I_HASH = CK.ui.IC.hash;
-  var I_CHECK = CK.ui.IC.check;
-  var I_DETECT = CK.ui.IC.detect;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
-  var I_SHUF = CK.ui.IC.shuffle;
 
   CK.registerTool('argon2', function (root, ctx) {
     var ui = CK.ui, el = CK.el, variant = 'id';
@@ -40,11 +33,11 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DROP);
     strip.desc.style.whiteSpace = 'normal'; // let the full timing guidance wrap instead of truncating
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // Left column split into 4 sub-columns: variant | memory + time | parallelism + hash length | custom salt. Right column: output format only.
@@ -101,7 +94,7 @@
     saltSwitch.appendChild(saltCb); saltSwitch.appendChild(el('span', { class: 'track' })); saltSwitch.appendChild(el('span', {}, 'Custom salt'));
     saltWrap.appendChild(saltSwitch);
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Salt (min 8 chars)' });
-    var saltGen = ui.iconBtn(I_SHUF, 'Random', function () { var b = crypto.getRandomValues(new Uint8Array(16)), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); saltInput.value = btoa(s).replace(/=+$/, ''); });
+    var saltGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', function () { var b = crypto.getRandomValues(new Uint8Array(16)), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); saltInput.value = btoa(s).replace(/=+$/, ''); });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltRow.appendChild(saltInput); saltRow.appendChild(saltGen);
     var saltField = ui.field('Salt', saltRow); saltField.style.display = 'none';
@@ -120,7 +113,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'PASSWORD', icon: I_DROP, placeholder: 'Password to hash...', primaries: [{ label: 'Hash', cls: 'enc', onClick: doHash }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'password.txt' });
-    var outP = ui.textPanel({ title: 'ENCODED HASH', icon: I_HASH, placeholder: 'Encoded $argon2 hash, or paste one to verify...', primaries: [{ label: 'Inspect', cls: 'dec', onClick: doInspect }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'argon2.txt' });
+    var outP = ui.textPanel({ title: 'ENCODED HASH', icon: CK.ui.IC.hash, placeholder: 'Encoded $argon2 hash, or paste one to verify...', primaries: [{ label: 'Inspect', cls: 'dec', onClick: doInspect }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'argon2.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
     CK.attachStrength(inP);

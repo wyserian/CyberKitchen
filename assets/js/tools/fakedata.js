@@ -34,8 +34,6 @@
   var PHONE_CODE = { us: '+1', uk: '+44', de: '+49', fr: '+33', jp: '+81', au: '+61', in: '+91', br: '+55' };
 
   var I_USER = '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>';
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('fakedata', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'name';
@@ -44,8 +42,8 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_USER);
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var countRange = el('input', { type: 'range', class: 'slim', min: '1', max: '100', value: '5' });
@@ -270,7 +268,5 @@
     if (sm) { try { var st = JSON.parse(b64uDec(sm[1])); if (st.t && get(st.t)) current = st.t; if (st.c) setCount(st.c); if (st.f) fmtSel.value = st.f; } catch (e) { } }
     updateDownloadName();
     select(current); generate();
-
-    return { reset: doReset, onKey: function (e) { if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'g') { e.preventDefault(); generate(); } } };
   });
 })();

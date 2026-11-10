@@ -116,11 +116,6 @@
 
   var I_SCROLL = '<path d="M4 7V5h16v2M9 20h6M12 5v15"/>';
   var I_LOCK = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>';
-  var I_RESET = CK.ui.IC.reset;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_CHECK = CK.ui.IC.check;
-  var I_DETECT = CK.ui.IC.detect;
-  var I_SHARE = CK.ui.IC.share;
 
   CK.registerTool('classical', function (root, ctx) {
     var ui = CK.ui, el = CK.el, current = 'caesar';
@@ -129,11 +124,11 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SCROLL);
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var keyInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off' });

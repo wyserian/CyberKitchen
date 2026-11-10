@@ -23,9 +23,6 @@
   function padEnd(s, w) { s = String(s); if (s.length >= w) return s.slice(0, w); while (s.length < w) s += ' '; return s; }
 
   var I_DIFF = '<path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M12 3v18"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('diff', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -35,8 +32,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DIFF);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -56,7 +53,7 @@
     root.appendChild(io);
 
     var io2 = ui.ioRow(true);
-    var outP = ui.textPanel({ title: 'DIFF', icon: I_OUT, placeholder: 'Differences appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'diff.txt' });
+    var outP = ui.textPanel({ title: 'DIFF', icon: CK.ui.IC.out, placeholder: 'Differences appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'diff.txt' });
     io2.appendChild(outP.panel);
     root.appendChild(io2);
 

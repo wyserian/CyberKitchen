@@ -94,11 +94,6 @@
 
   var I_HASH = '<path d="M6 4v16M6 4h4a3 3 0 0 1 0 6H6M14 4h4v6h-4zM14 14h4v6h-4z"/>';
   var I_OUT = '<path d="M7 7 3 12l4 5M17 7l4 5-4 5M14 4l-4 16"/>';
-  var I_CHECK = CK.ui.IC.check;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_DETECT = CK.ui.IC.detect;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('number', function (root, ctx) {
     var ui = CK.ui, el = CK.el, from = 'dec', outId = 'hex', inWidth = 32, outWidth = 32, inCustBase = 3, outCustBase = 3;
@@ -107,11 +102,11 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_HASH);
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // Two sections (Input | Output); each has one dropdown per representation group

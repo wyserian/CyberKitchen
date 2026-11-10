@@ -1,67 +1,15 @@
 /*
    kdf.js - Key Derivation (PBKDF2 / scrypt / HKDF)
    Turn a password + salt into a derived key. PBKDF2 uses Web Crypto
-   (SHA-1/256/384/512). scrypt (RFC 7914) is implemented here, using crypto-js
-   for the internal PBKDF2-HMAC-SHA256 and hand-written Salsa20/8 mixing.
-   HKDF (RFC 5869) uses noble-hashes: extract-and-expand with an optional salt and info.
+   (SHA-1/256/384/512). scrypt (RFC 7914) and HKDF (RFC 5869) use noble-hashes;
+   HKDF is extract-and-expand with an optional salt and info.
    Fully offline.
 */
 (function () {
   'use strict';
   var b64uDec = CK.b64uDec, toHex = CK.toHex, rndBytes = CK.rndBytes, b64 = CK.b64;
   var ENC = new TextEncoder();
-  var C = window.CryptoJS;
-
   function inputBytes(v, fmt) { return CK.textBytes(v || '', fmt); }
-
-  /* ---- crypto-js bridges for scrypt's internal PBKDF2-HMAC-SHA256 ---- */
-  function waFromBytes(bytes) { var words = []; for (var i = 0; i < bytes.length; i++) words[i >>> 2] |= (bytes[i] & 0xff) << (24 - (i % 4) * 8); return C.lib.WordArray.create(words, bytes.length); }
-  function bytesFromWa(wa) { var b = new Uint8Array(wa.sigBytes); for (var i = 0; i < wa.sigBytes; i++) b[i] = (wa.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff; return b; }
-  function pbkdf2Sha256(passBytes, saltBytes, iterations, dkLen) {
-    var dk = C.PBKDF2(waFromBytes(passBytes), waFromBytes(saltBytes), { keySize: Math.ceil(dkLen / 4), iterations: iterations, hasher: C.algo.SHA256 });
-    return bytesFromWa(dk).subarray(0, dkLen);
-  }
-
-  /* ---- scrypt core (RFC 7914) ---- */
-  function bytesToWords(b) { var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), w = new Uint32Array(b.length / 4); for (var i = 0; i < w.length; i++) w[i] = dv.getUint32(i * 4, true); return w; }
-  function wordsToBytes(w) { var b = new Uint8Array(w.length * 4), dv = new DataView(b.buffer); for (var i = 0; i < w.length; i++) dv.setUint32(i * 4, w[i], true); return b; }
-  function R(a, b) { return (a << b) | (a >>> (32 - b)); }
-  function salsa20_8(B) {
-    var x = B.slice(), i;
-    for (i = 8; i > 0; i -= 2) {
-      x[4] ^= R(x[0] + x[12], 7); x[8] ^= R(x[4] + x[0], 9); x[12] ^= R(x[8] + x[4], 13); x[0] ^= R(x[12] + x[8], 18);
-      x[9] ^= R(x[5] + x[1], 7); x[13] ^= R(x[9] + x[5], 9); x[1] ^= R(x[13] + x[9], 13); x[5] ^= R(x[1] + x[13], 18);
-      x[14] ^= R(x[10] + x[6], 7); x[2] ^= R(x[14] + x[10], 9); x[6] ^= R(x[2] + x[14], 13); x[10] ^= R(x[6] + x[2], 18);
-      x[3] ^= R(x[15] + x[11], 7); x[7] ^= R(x[3] + x[15], 9); x[11] ^= R(x[7] + x[3], 13); x[15] ^= R(x[11] + x[7], 18);
-      x[1] ^= R(x[0] + x[3], 7); x[2] ^= R(x[1] + x[0], 9); x[3] ^= R(x[2] + x[1], 13); x[0] ^= R(x[3] + x[2], 18);
-      x[6] ^= R(x[5] + x[4], 7); x[7] ^= R(x[6] + x[5], 9); x[4] ^= R(x[7] + x[6], 13); x[5] ^= R(x[4] + x[7], 18);
-      x[11] ^= R(x[10] + x[9], 7); x[8] ^= R(x[11] + x[10], 9); x[9] ^= R(x[8] + x[11], 13); x[10] ^= R(x[9] + x[8], 18);
-      x[12] ^= R(x[15] + x[14], 7); x[13] ^= R(x[12] + x[15], 9); x[14] ^= R(x[13] + x[12], 13); x[15] ^= R(x[14] + x[13], 18);
-    }
-    for (i = 0; i < 16; i++) B[i] = (B[i] + x[i]) >>> 0;
-  }
-  function blockMix(B, r) {
-    var X = new Uint32Array(16); X.set(B.subarray((2 * r - 1) * 16, (2 * r - 1) * 16 + 16));
-    var Y = new Uint32Array(B.length), i, k;
-    for (i = 0; i < 2 * r; i++) {
-      for (k = 0; k < 16; k++) X[k] ^= B[i * 16 + k];
-      salsa20_8(X);
-      Y.set(X, i * 16);
-    }
-    for (i = 0; i < r; i++) for (k = 0; k < 16; k++) { B[i * 16 + k] = Y[(i * 2) * 16 + k]; B[(r + i) * 16 + k] = Y[(i * 2 + 1) * 16 + k]; }
-  }
-  function romix(B, N, r) {
-    var X = B.slice(), V = new Array(N), i, k;
-    for (i = 0; i < N; i++) { V[i] = X.slice(); blockMix(X, r); }
-    for (i = 0; i < N; i++) { var j = (X[(2 * r - 1) * 16] >>> 0) % N; for (k = 0; k < X.length; k++) X[k] ^= V[j][k]; blockMix(X, r); }
-    B.set(X);
-  }
-  function scrypt(passBytes, saltBytes, N, r, p, dkLen) {
-    var B = pbkdf2Sha256(passBytes, saltBytes, 1, p * 128 * r);
-    var all = bytesToWords(B), wpb = 32 * r;
-    for (var i = 0; i < p; i++) romix(all.subarray(i * wpb, (i + 1) * wpb), N, r);
-    return pbkdf2Sha256(passBytes, wordsToBytes(all), 1, dkLen);
-  }
 
   function pbkdf2Web(passBytes, saltBytes, iterations, hash, dkLen) {
     return crypto.subtle.importKey('raw', passBytes, 'PBKDF2', false, ['deriveBits'])
@@ -69,12 +17,7 @@
       .then(function (buf) { return new Uint8Array(buf); });
   }
 
-  var I_KEY = CK.ui.IC.key;
   var I_LOCK = '<path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v10H5z"/>';
-  var I_SHUF = CK.ui.IC.shuffle;
-  var I_CHECK = CK.ui.IC.check;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
   var ITERS = [100000, 310000, 600000];
 
   CK.registerTool('kdf', function (root, ctx) {
@@ -83,11 +26,11 @@
     root.appendChild(ui.head('Key Derivation'));
 
     var cfg = ui.configPanel();
-    var strip = ui.selStrip(I_KEY);
+    var strip = ui.selStrip(CK.ui.IC.key);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -119,7 +62,7 @@
     var saltWrap = el('div', { class: 'col' });
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'Salt' });
     var saltFmt = ui.select([['base64', 'Base64'], ['hex', 'Hexadecimal'], ['utf8', 'UTF-8']], null, 'base64');
-    var saltGen = ui.iconBtn(I_SHUF, 'Random', function () { saltInput.value = saltFmt.value === 'hex' ? toHex(rndBytes(16)) : saltFmt.value === 'utf8' ? toHex(rndBytes(16)) : b64(rndBytes(16)); if (saltFmt.value === 'utf8') saltFmt.value = 'hex'; });
+    var saltGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', function () { saltInput.value = saltFmt.value === 'hex' ? toHex(rndBytes(16)) : saltFmt.value === 'utf8' ? toHex(rndBytes(16)) : b64(rndBytes(16)); if (saltFmt.value === 'utf8') saltFmt.value = 'hex'; });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltFmt.style.width = 'auto';
     saltRow.appendChild(saltInput); saltRow.appendChild(saltFmt); saltRow.appendChild(saltGen);
@@ -154,7 +97,7 @@
     root.appendChild(cfg);
 
     var io = ui.ioRow();
-    var inP = ui.textPanel({ title: 'PASSWORD', icon: I_KEY, placeholder: 'Password to derive a key from...', primaries: [{ label: 'Derive', cls: 'enc', onClick: doDerive }], actions: ['copy', 'paste', 'clear'] });
+    var inP = ui.textPanel({ title: 'PASSWORD', icon: CK.ui.IC.key, placeholder: 'Password to derive a key from...', primaries: [{ label: 'Derive', cls: 'enc', onClick: doDerive }], actions: ['copy', 'paste', 'clear'] });
     var outP = ui.textPanel({ title: 'DERIVED KEY', icon: I_LOCK, placeholder: 'Derived key appears here...', readonly: true, actions: ['copy', 'download'], downloadName: 'derived-key.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
@@ -189,7 +132,7 @@
       if (algo === 'scrypt') {
         var N = Math.pow(2, +nSel.value), r = Math.max(1, +rInput.value || 8), p = Math.max(1, +pInput.value || 1);
         return new Promise(function (resolve, reject) {
-          setTimeout(function () { try { resolve(scrypt(ENC.encode(pw), salt, N, r, p, dkLen())); } catch (e) { reject(e); } }, 10);
+          setTimeout(function () { try { resolve(Noble.scrypt(ENC.encode(pw), salt, { N: N, r: r, p: p, dkLen: dkLen() })); } catch (e) { reject(e); } }, 10);
         });
       }
       return pbkdf2Web(ENC.encode(pw), salt, iters, hashSel.value, dkLen());

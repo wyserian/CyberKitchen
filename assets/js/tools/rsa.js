@@ -13,12 +13,6 @@
 
   var I_SHIELD = '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>';
   var I_LOCK = '<path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v10H5z"/>';
-  var I_SHUF = CK.ui.IC.shuffle;
-  var I_CHECK = CK.ui.IC.check;
-  var I_DETECT = CK.ui.IC.detect;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('rsa', function (root, ctx) {
     var ui = CK.ui, el = CK.el, bits = 2048, hash = 'SHA-256';
@@ -27,11 +21,11 @@
 
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_SHIELD);
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // Main grid: left column is a 2x2 sub-grid (Public key / Key size over Private key / Hash);
@@ -48,7 +42,7 @@
       ta.style.flex = '1'; ta.style.fontSize = '11px';
       var wrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
       wrap.appendChild(ta);
-      wrap.appendChild(ui.iconBtn(I_SHUF, 'Generate keypair', function () { doGenerate(); }));
+      wrap.appendChild(ui.iconBtn(CK.ui.IC.shuffle, 'Generate keypair', function () { doGenerate(); }));
       return { box: ui.field(labelText, wrap), ta: ta };
     }
     var pub = keyBox('Public key'), priv = keyBox('Private key');

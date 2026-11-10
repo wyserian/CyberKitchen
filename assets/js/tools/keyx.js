@@ -8,7 +8,7 @@
 */
 (function () {
   'use strict';
-  var toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, b64uDec = CK.b64uDec;
+  var later = CK.later, toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64, b64uDec = CK.b64uDec;
 
   // Group primes as hex, derived from pi (MODP) and e (FFDHE) by the RFC formulas and checked to be safe primes
   var P = {
@@ -125,7 +125,6 @@
     }
     function derivePub() { try { pubIn.value = text(get(current).lib.getPublicKey(priv())); } catch (e) { pubIn.value = ''; } }
     function reformat() { [privIn, pubIn].forEach(function (i) { try { if (i.value.trim()) i.value = text(bytes(i.value, 'Key')); } catch (e) { } }); }
-    function later(fn) { return new Promise(function (res, rej) { setTimeout(function () { try { res(fn()); } catch (e) { rej(e); } }, 20); }); }
 
     function doGenerate() {
       var a = get(current);

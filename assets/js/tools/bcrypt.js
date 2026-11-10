@@ -23,13 +23,6 @@
   }
 
   var I_FISH = '<path d="M6.5 12c3-5 8-5 11 0-3 5-8 5-11 0zM15 11.5v.01"/>';
-  var I_HASH = CK.ui.IC.hash;
-  var I_CHECK = CK.ui.IC.check;
-  var I_DETECT = CK.ui.IC.detect;
-  var I_SWAP = CK.ui.IC.swap;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
-  var I_SHUF = CK.ui.IC.shuffle;
   var COSTS = [8, 10, 12, 14, 16];
 
   CK.registerTool('bcrypt', function (root, ctx) {
@@ -40,11 +33,11 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_FISH);
     strip.desc.style.whiteSpace = 'normal'; // let the full cost guidance wrap instead of truncating
-    strip.acts.appendChild(ui.iconBtn(I_DETECT, 'Detect', doDetect));
-    strip.acts.appendChild(ui.iconBtn(I_CHECK, 'Verify', doVerify));
-    strip.acts.appendChild(ui.iconBtn(I_SWAP, 'Swap', doSwap));
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.detect, 'Detect', doDetect));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.check, 'Verify', doVerify));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.swap, 'Swap', doSwap));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     // Left column split: cost | custom salt. Right column: output.
@@ -72,7 +65,7 @@
     saltSwitch.appendChild(saltCb); saltSwitch.appendChild(el('span', { class: 'track' })); saltSwitch.appendChild(el('span', {}, 'Custom salt'));
     saltWrap.appendChild(saltSwitch);
     var saltInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: '$2a$10$22-char-salt' });
-    var saltGen = ui.iconBtn(I_SHUF, 'Random', function () { var b = lib(); if (!b) { ctx.toast('bcrypt library not loaded', 'error'); return; } saltInput.value = b.genSaltSync(cost); });
+    var saltGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', function () { var b = lib(); if (!b) { ctx.toast('bcrypt library not loaded', 'error'); return; } saltInput.value = b.genSaltSync(cost); });
     var saltRow = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     saltInput.style.flex = '1'; saltInput.style.minWidth = '0'; saltRow.appendChild(saltInput); saltRow.appendChild(saltGen);
     var saltField = ui.field('Salt', saltRow); saltField.style.display = 'none';
@@ -90,7 +83,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'PASSWORD', icon: I_FISH, placeholder: 'Password to hash...', primaries: [{ label: 'Hash', cls: 'enc', onClick: doHash }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'password.txt' });
-    var outP = ui.textPanel({ title: 'BCRYPT HASH', icon: I_HASH, placeholder: 'Hash output, or paste a $2 hash to verify...', primaries: [{ label: 'Inspect', cls: 'dec', onClick: doInspect }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'bcrypt.txt' });
+    var outP = ui.textPanel({ title: 'BCRYPT HASH', icon: CK.ui.IC.hash, placeholder: 'Hash output, or paste a $2 hash to verify...', primaries: [{ label: 'Inspect', cls: 'dec', onClick: doInspect }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'bcrypt.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
     CK.attachStrength(inP);

@@ -38,9 +38,6 @@
   }
 
   var I_NET = '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
 
   CK.registerTool('cidr', function (root, ctx) {
     var ui = CK.ui, el = CK.el;
@@ -50,8 +47,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_NET);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -74,7 +71,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'IP ADDRESS / CIDR', icon: I_NET, placeholder: '192.168.1.0/24  or  10.0.0.5', primaries: [{ label: 'Calculate', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear'], onInput: run });
-    var outP = ui.textPanel({ title: 'SUBNET DETAILS', icon: I_OUT, placeholder: 'Network details appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'subnet.txt' });
+    var outP = ui.textPanel({ title: 'SUBNET DETAILS', icon: CK.ui.IC.out, placeholder: 'Network details appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'subnet.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

@@ -43,10 +43,6 @@
   function contrast(a, b) { var l1 = luminance(a), l2 = luminance(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); }
 
   var I_DROP = '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>';
-  var I_OUT = CK.ui.IC.out;
-  var I_SHUF = CK.ui.IC.shuffle;
-  var I_SHARE = CK.ui.IC.share;
-  var I_RESET = CK.ui.IC.reset;
   function rndHex() { var n = Math.floor(Math.random() * 0x1000000); return '#' + n.toString(16).padStart(6, '0'); }
 
   CK.registerTool('color', function (root, ctx) {
@@ -57,8 +53,8 @@
     var cfg = ui.configPanel();
     var strip = ui.selStrip(I_DROP);
     strip.desc.style.whiteSpace = 'normal';
-    strip.acts.appendChild(ui.iconBtn(I_SHARE, 'Share', doShare));
-    strip.acts.appendChild(ui.iconBtn(I_RESET, 'Reset', doReset));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.share, 'Share', doShare));
+    strip.acts.appendChild(ui.iconBtn(CK.ui.IC.reset, 'Reset', doReset));
     cfg.appendChild(strip.strip);
 
     var grid = el('div', { class: 'cfg-grid wide-left' });
@@ -66,7 +62,7 @@
     var colR = el('div', { class: 'col' });
     var bgInput = el('input', { class: 'inp', type: 'text', spellcheck: 'false', autocomplete: 'off', value: '#ffffff', placeholder: 'Background color' });
     bgInput.addEventListener('input', run);
-    var bgGen = ui.iconBtn(I_SHUF, 'Random', function () { bgInput.value = rndHex(); run(); });
+    var bgGen = ui.iconBtn(CK.ui.IC.shuffle, 'Random', function () { bgInput.value = rndHex(); run(); });
     var bgWrap = el('div', { style: 'display:flex; gap:5px; align-items:center;' });
     bgInput.style.flex = '1'; bgInput.style.minWidth = '0'; bgWrap.appendChild(bgInput); bgWrap.appendChild(bgGen);
     colL.appendChild(ui.field('Background (for contrast)', bgWrap));
@@ -80,7 +76,7 @@
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'COLOR', icon: I_DROP, placeholder: '#3b82f6  ·  rgb(59,130,246)  ·  hsl(217,91%,60%)  ·  royalblue', primaries: [{ label: 'Convert', cls: 'enc', onClick: run }], actions: ['copy', 'paste', 'clear'], onInput: run });
-    var outP = ui.textPanel({ title: 'FORMATS', icon: I_OUT, placeholder: 'Color formats and contrast appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'color.txt' });
+    var outP = ui.textPanel({ title: 'FORMATS', icon: CK.ui.IC.out, placeholder: 'Color formats and contrast appear here...', readonly: true, actions: ['copy', 'download'], downloadName: 'color.txt' });
     io.appendChild(inP.panel); io.appendChild(outP.panel);
     root.appendChild(io);
 

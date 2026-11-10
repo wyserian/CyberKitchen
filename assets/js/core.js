@@ -1,7 +1,7 @@
 /*
    core.js - CyberKitchen dashboard engine
    Generic, tool-agnostic: theme, toast, clipboard, download, storage, DOM
-   helpers, tool registry, hash router, mount manager, keyboard dispatcher.
+   helpers, tool registry, hash router and mount manager.
    Tools register a mount function by id via CK.registerTool(id, mountFn).
    Fully offline: no external dependencies.
 */
@@ -58,6 +58,16 @@ var CK = (function () {
   function b64uDec(str) { return new TextDecoder().decode(unb64(str)); }
   function pem(label, buf) { return '-----BEGIN ' + label + '-----\n' + b64(buf).replace(/(.{64})/g, '$1\n').trim() + '\n-----END ' + label + '-----'; }
   function unpem(str) { return unb64(String(str).replace(/-----[^-]+-----/g, '')); }
+  // Join byte arrays (Uint8Array or plain arrays of numbers) into one Uint8Array
+  function cat() {
+    var parts = [].map.call(arguments, function (p) { return p instanceof Uint8Array ? p : new Uint8Array(p); }), n = 0, off = 0, i;
+    for (i = 0; i < parts.length; i++) n += parts[i].length;
+    var o = new Uint8Array(n);
+    for (i = 0; i < parts.length; i++) { o.set(parts[i], off); off += parts[i].length; }
+    return o;
+  }
+  // Run slow work after a short delay so the button spinner paints first; returns a promise of its result
+  function later(fn) { return new Promise(function (res, rej) { setTimeout(function () { try { res(fn()); } catch (e) { rej(e); } }, 20); }); }
   // Text in a chosen format ('hex' | 'base64' | UTF-8 otherwise) -> bytes
   function textBytes(v, fmt) { return fmt === 'hex' ? hexToBytes(v) : fmt === 'base64' ? unb64(v) : new TextEncoder().encode(v); }
   // Best guess at the format of a key / IV / data field, and its length in bytes
@@ -505,7 +515,7 @@ var CK = (function () {
     toast: toast, copy: copy, paste: paste, download: download,
     el: el, iconSvg: iconSvg, flashVerify: flashVerify, attachStrength: attachStrength,
     share: share, rememberSettings: rememberSettings, toHex: toHex, hexToBytes: hexToBytes, b64: b64, unb64: unb64, b64u: b64u, b64uEnc: b64uEnc, b64uDec: b64uDec,
-    pem: pem, unpem: unpem, textBytes: textBytes, detectFmt: detectFmt, fmtByteLen: fmtByteLen, fmtLabel: fmtLabel,
+    pem: pem, unpem: unpem, cat: cat, later: later, textBytes: textBytes, detectFmt: detectFmt, fmtByteLen: fmtByteLen, fmtLabel: fmtLabel,
     rndBytes: rndBytes, randInt: randInt, randomSecret: randomSecret, ipStr: ipStr
   };
 })();
