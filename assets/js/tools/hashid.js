@@ -32,15 +32,15 @@
 
   // Hex-length -> ranked candidate algorithms (chars, not bytes)
   var BY_HEX = {
-    8: ['CRC-32', 'Adler-32', 'CRC-32B', 'FNV-32'],
-    16: ['MySQL 3.x (old password)', 'CRC-64', 'DES (Unix, partial)'],
+    8: ['CRC-32', 'Adler-32', 'CRC-32B', 'FNV-1 / FNV-1a (32-bit)', 'MurmurHash3 (32-bit)', 'xxHash32', 'Jenkins one-at-a-time'],
+    16: ['CRC-64', 'xxHash64', 'SipHash-2-4', 'FNV-1 / FNV-1a (64-bit)', 'MySQL 3.x (old password)', 'DES (Unix, partial)'],
     32: ['MD5', 'NTLM', 'MD4', 'MD2', 'RIPEMD-128', 'Haval-128', 'Tiger-128', 'double MD5'],
     40: ['SHA-1', 'RIPEMD-160', 'Haval-160', 'Tiger-160', 'HAS-160', 'MySQL 4.1+ (SHA-1)'],
     48: ['Tiger-192', 'Haval-192', 'SHA-1 (truncated)'],
-    56: ['SHA-224', 'SHA3-224', 'Haval-224', 'Keccak-224'],
-    64: ['SHA-256', 'SHA3-256', 'BLAKE2s-256', 'RIPEMD-256', 'Keccak-256', 'GOST R 34.11', 'Snefru-256'],
-    96: ['SHA-384', 'SHA3-384', 'Keccak-384'],
-    128: ['SHA-512', 'SHA3-512', 'BLAKE2b-512', 'Whirlpool', 'Keccak-512', 'RIPEMD-320 (near)']
+    56: ['SHA-224', 'SHA3-224', 'SHA-512/224', 'BLAKE-224', 'Keccak-224', 'Haval-224'],
+    64: ['SHA-256', 'SHA3-256', 'BLAKE3', 'BLAKE2s-256', 'SHA-512/256', 'SHAKE128 (256-bit)', 'Keccak-256', 'BLAKE-256', 'RIPEMD-256', 'SM3', 'GOST R 34.11-94', 'Streebog-256', 'Snefru-256'],
+    96: ['SHA-384', 'SHA3-384', 'Keccak-384', 'BLAKE-384'],
+    128: ['SHA-512', 'SHA3-512', 'BLAKE2b-512', 'SHAKE256 (512-bit)', 'Whirlpool', 'Streebog-512', 'Keccak-512', 'BLAKE-512']
   };
 
   function identify(raw) {

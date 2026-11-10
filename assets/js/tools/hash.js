@@ -1,7 +1,8 @@
 /*
    hash.js - Cryptographic Hash
-   Select one algorithm (MD5, SHA-1, RIPEMD-160, CRC32, SHA-2, SHA-3, Keccak),
-   optional HMAC, input UTF-8/Hex/Base64, output hex/HEX/Base64/Base64URL.
+   Select one algorithm: MD5, SHA-1, RIPEMD-160, SHA-2 (incl. SHA-512/t), SHA-3, SHAKE,
+   Keccak, BLAKE / BLAKE2 / BLAKE3 (noble-hashes) or a fast checksum (CRC, Adler, FNV,
+   Murmur3, xxHash, Jenkins, keyed SipHash). Optional HMAC, input UTF-8/Hex/Base64, output hex/HEX/Base64/Base64URL.
    Input-driven panels with Hash, plus Verify / Detect / Swap / Share / Reset.
 */
 (function () {
@@ -11,23 +12,55 @@
   function webBytes(algo, b) { return crypto.subtle.digest(algo, b).then(function (h) { return new Uint8Array(h); }); }
   function P(hex) { return Promise.resolve(hexToBytes(hex)); }
 
-  // hb: bytes -> Promise<Uint8Array>; block = HMAC block size; bytes = digest length
+  function N(name, opts) { return function (b) { return Promise.resolve(Noble[name](b, opts)); }; }
+  function L(name) { return function (b) { return P(HashLib[name](b)); }; }
+
+  // hb: bytes -> Promise<Uint8Array>; block = HMAC block size; bytes = digest length.
+  // hmac: false = not a keyed-hash candidate; keyed = needs its own key (SipHash).
+  // Shared with File Checksum (CK.hashAlgos), so both tools offer the same list.
   var ALGOS = [
-    { id: 'md5', label: 'MD5', group: 'Legacy', badge: 'RFC1321', bytes: 16, block: 64, hb: function (b) { return P(HashLib.md5(b)); } },
-    { id: 'sha1', label: 'SHA-1', group: 'Legacy', badge: 'SHA-1', bytes: 20, block: 64, hb: function (b) { return webBytes('SHA-1', b); } },
+    { id: 'md5', label: 'MD5', group: 'Legacy', badge: 'RFC 1321', bytes: 16, block: 64, hb: L('md5') },
+    { id: 'sha1', label: 'SHA-1', group: 'Legacy', badge: 'FIPS 180', bytes: 20, block: 64, hb: function (b) { return webBytes('SHA-1', b); } },
     { id: 'ripemd160', label: 'RIPEMD-160', group: 'Legacy', badge: 'RIPEMD', bytes: 20, block: 64, hb: function (b) { return P(HashLib.ripemd160(b)); } },
-    { id: 'crc32', label: 'CRC32', group: 'Legacy', badge: 'Checksum', bytes: 4, block: 0, hmac: false, hb: function (b) { return P(HashLib.crc32(b)); } },
-    { id: 'sha256', label: 'SHA-256', group: 'SHA-2', badge: 'SHA-2', bytes: 32, block: 64, hb: function (b) { return webBytes('SHA-256', b); } },
-    { id: 'sha384', label: 'SHA-384', group: 'SHA-2', badge: 'SHA-2', bytes: 48, block: 128, hb: function (b) { return webBytes('SHA-384', b); } },
-    { id: 'sha512', label: 'SHA-512', group: 'SHA-2', badge: 'SHA-2', bytes: 64, block: 128, hb: function (b) { return webBytes('SHA-512', b); } },
-    { id: 'sha3-224', label: 'SHA3-224', group: 'SHA-3', badge: 'SHA-3', bytes: 28, block: 144, hb: function (b) { return P(HashLib.sha3(224, b)); } },
-    { id: 'sha3-256', label: 'SHA3-256', group: 'SHA-3', badge: 'SHA-3', bytes: 32, block: 136, hb: function (b) { return P(HashLib.sha3(256, b)); } },
-    { id: 'sha3-384', label: 'SHA3-384', group: 'SHA-3', badge: 'SHA-3', bytes: 48, block: 104, hb: function (b) { return P(HashLib.sha3(384, b)); } },
-    { id: 'sha3-512', label: 'SHA3-512', group: 'SHA-3', badge: 'SHA-3', bytes: 64, block: 72, hb: function (b) { return P(HashLib.sha3(512, b)); } },
-    { id: 'keccak-256', label: 'Keccak-256', group: 'SHA-3', badge: 'Keccak', bytes: 32, block: 136, hb: function (b) { return P(HashLib.keccak(256, b)); } }
+    { id: 'sha224', label: 'SHA-224', group: 'SHA-2', badge: 'FIPS 180', bytes: 28, block: 64, hb: N('sha224') },
+    { id: 'sha256', label: 'SHA-256', group: 'SHA-2', badge: 'FIPS 180', bytes: 32, block: 64, hb: function (b) { return webBytes('SHA-256', b); } },
+    { id: 'sha384', label: 'SHA-384', group: 'SHA-2', badge: 'FIPS 180', bytes: 48, block: 128, hb: function (b) { return webBytes('SHA-384', b); } },
+    { id: 'sha512', label: 'SHA-512', group: 'SHA-2', badge: 'FIPS 180', bytes: 64, block: 128, hb: function (b) { return webBytes('SHA-512', b); } },
+    { id: 'sha512-224', label: 'SHA-512/224', group: 'SHA-2', badge: 'FIPS 180', bytes: 28, block: 128, hb: N('sha512_224') },
+    { id: 'sha512-256', label: 'SHA-512/256', group: 'SHA-2', badge: 'FIPS 180', bytes: 32, block: 128, hb: N('sha512_256') },
+    { id: 'sha3-224', label: 'SHA3-224', group: 'SHA-3', badge: 'FIPS 202', bytes: 28, block: 144, hb: function (b) { return P(HashLib.sha3(224, b)); } },
+    { id: 'sha3-256', label: 'SHA3-256', group: 'SHA-3', badge: 'FIPS 202', bytes: 32, block: 136, hb: function (b) { return P(HashLib.sha3(256, b)); } },
+    { id: 'sha3-384', label: 'SHA3-384', group: 'SHA-3', badge: 'FIPS 202', bytes: 48, block: 104, hb: function (b) { return P(HashLib.sha3(384, b)); } },
+    { id: 'sha3-512', label: 'SHA3-512', group: 'SHA-3', badge: 'FIPS 202', bytes: 64, block: 72, hb: function (b) { return P(HashLib.sha3(512, b)); } },
+    { id: 'shake128', label: 'SHAKE128 (256-bit)', group: 'SHA-3', badge: 'FIPS 202', bytes: 32, hmac: false, hb: N('shake128', { dkLen: 32 }) },
+    { id: 'shake256', label: 'SHAKE256 (512-bit)', group: 'SHA-3', badge: 'FIPS 202', bytes: 64, hmac: false, hb: N('shake256', { dkLen: 64 }) },
+    { id: 'keccak-224', label: 'Keccak-224', group: 'SHA-3', badge: 'Keccak', bytes: 28, block: 144, hb: N('keccak_224') },
+    { id: 'keccak-256', label: 'Keccak-256', group: 'SHA-3', badge: 'Keccak', bytes: 32, block: 136, hb: function (b) { return P(HashLib.keccak(256, b)); } },
+    { id: 'keccak-384', label: 'Keccak-384', group: 'SHA-3', badge: 'Keccak', bytes: 48, block: 104, hb: N('keccak_384') },
+    { id: 'keccak-512', label: 'Keccak-512', group: 'SHA-3', badge: 'Keccak', bytes: 64, block: 72, hb: N('keccak_512') },
+    { id: 'blake224', label: 'BLAKE-224', group: 'BLAKE', badge: 'SHA-3 finalist', bytes: 28, block: 64, hb: N('blake224') },
+    { id: 'blake256', label: 'BLAKE-256', group: 'BLAKE', badge: 'SHA-3 finalist', bytes: 32, block: 64, hb: N('blake256') },
+    { id: 'blake384', label: 'BLAKE-384', group: 'BLAKE', badge: 'SHA-3 finalist', bytes: 48, block: 128, hb: N('blake384') },
+    { id: 'blake512', label: 'BLAKE-512', group: 'BLAKE', badge: 'SHA-3 finalist', bytes: 64, block: 128, hb: N('blake512') },
+    { id: 'blake2s', label: 'BLAKE2s-256', group: 'BLAKE', badge: 'RFC 7693', bytes: 32, block: 64, hb: N('blake2s') },
+    { id: 'blake2b', label: 'BLAKE2b-512', group: 'BLAKE', badge: 'RFC 7693', bytes: 64, block: 128, hb: N('blake2b') },
+    { id: 'blake3', label: 'BLAKE3', group: 'BLAKE', badge: 'BLAKE3', bytes: 32, block: 64, hb: N('blake3') },
+    { id: 'crc32', label: 'CRC32', group: 'Checksum', badge: 'Checksum', bytes: 4, hmac: false, hb: L('crc32') },
+    { id: 'crc64', label: 'CRC-64/XZ', group: 'Checksum', badge: 'Checksum', bytes: 8, hmac: false, hb: L('crc64') },
+    { id: 'adler32', label: 'Adler-32', group: 'Checksum', badge: 'RFC 1950', bytes: 4, hmac: false, hb: L('adler32') },
+    { id: 'fnv1-32', label: 'FNV-1 (32-bit)', group: 'Checksum', badge: 'Non-crypto', bytes: 4, hmac: false, hb: L('fnv1_32') },
+    { id: 'fnv1a-32', label: 'FNV-1a (32-bit)', group: 'Checksum', badge: 'Non-crypto', bytes: 4, hmac: false, hb: L('fnv1a_32') },
+    { id: 'fnv1-64', label: 'FNV-1 (64-bit)', group: 'Checksum', badge: 'Non-crypto', bytes: 8, hmac: false, hb: L('fnv1_64') },
+    { id: 'fnv1a-64', label: 'FNV-1a (64-bit)', group: 'Checksum', badge: 'Non-crypto', bytes: 8, hmac: false, hb: L('fnv1a_64') },
+    { id: 'murmur3', label: 'MurmurHash3 (32-bit)', group: 'Checksum', badge: 'Non-crypto', bytes: 4, hmac: false, hb: L('murmur3') },
+    { id: 'xxh32', label: 'xxHash32', group: 'Checksum', badge: 'Non-crypto', bytes: 4, hmac: false, hb: L('xxh32') },
+    { id: 'xxh64', label: 'xxHash64', group: 'Checksum', badge: 'Non-crypto', bytes: 8, hmac: false, hb: L('xxh64') },
+    { id: 'jenkins', label: 'Jenkins one-at-a-time', group: 'Checksum', badge: 'Non-crypto', bytes: 4, hmac: false, hb: L('oaat') },
+    { id: 'siphash', label: 'SipHash-2-4 (keyed)', group: 'Checksum', badge: 'Keyed PRF', bytes: 8, hmac: false, keyed: 16, hb: function (b, k) { return P(HashLib.siphash(k, b)); } }
   ];
   function get(id) { for (var i = 0; i < ALGOS.length; i++) if (ALGOS[i].id === id) return ALGOS[i]; return null; }
-  var GROUPS = ['Legacy', 'SHA-2', 'SHA-3'];
+  CK.hashAlgos = ALGOS;
+  var GROUPS = ['Legacy', 'SHA-2', 'SHA-3', 'BLAKE', 'Checksum'];
   var BY_LEN = { 4: 'crc32', 16: 'md5', 20: 'sha1', 28: 'sha3-224', 32: 'sha256', 48: 'sha384', 64: 'sha512' };
 
   function hmac(algo, keyBytes, msgBytes) {
@@ -92,9 +125,16 @@
     var keyGen = ui.iconBtn(I_SHUF, 'Random', genKey);
     var keyWrap = el('div', { style: 'display:flex; gap:5px; align-items:center; overflow:hidden;' });
     keyInput.style.flex = '1'; keyInput.style.minWidth = '0'; keyFmt.style.width = 'auto'; keyWrap.appendChild(keyInput); keyWrap.appendChild(keyFmt); keyWrap.appendChild(keyGen);
-    var keyField = ui.field('HMAC key', keyWrap); keyField.style.display = 'none';
+    var keyField = ui.field('Key', keyWrap); keyField.style.display = 'none';
     hmacWrap.appendChild(keyField);
-    hmacCb.addEventListener('change', function () { keyField.style.display = hmacCb.checked ? '' : 'none'; });
+    hmacCb.addEventListener('change', syncKey);
+    // HMAC switch for hashes that support it; SipHash always shows its own key; checksums show neither
+    function syncKey() {
+      var a = get(current);
+      hmacSwitch.style.display = a.hmac === false ? 'none' : '';
+      keyField.style.display = a.keyed || (a.hmac !== false && hmacCb.checked) ? '' : 'none';
+      keyInput.placeholder = a.keyed ? a.keyed + '-byte key' : 'HMAC key';
+    }
 
     colL.appendChild(pickWrap); colL.appendChild(hmacWrap);
 
@@ -107,7 +147,8 @@
     cfg.appendChild(grid);
     root.appendChild(cfg);
 
-    function genKey() { var a = get(current); keyInput.value = randomSecret(a.bytes || 32, keyFmt.value); if (!hmacCb.checked) { hmacCb.checked = true; keyField.style.display = ''; } }
+    // A UTF-8 key of n printable characters is n bytes, so SipHash's 16 bytes hold in every format
+    function genKey() { var a = get(current); keyInput.value = randomSecret(a.keyed || a.bytes || 32, keyFmt.value); if (!a.keyed) hmacCb.checked = true; syncKey(); }
 
     var io = ui.ioRow();
     var inP = ui.textPanel({ title: 'INPUT', icon: I_FILE, placeholder: 'Text to hash...', primaries: [{ label: 'Hash', cls: 'enc', onClick: doHash }], actions: ['copy', 'paste', 'clear', 'download'], downloadName: 'input.txt' });
@@ -119,20 +160,24 @@
     inP.ta.addEventListener('input', clearVerify);
     outP.ta.addEventListener('input', clearVerify);
 
-    function select(id) { var a = get(id); if (!a) return; current = id; syncSelects(id); ui.setSel(strip, a.label, a.badge, a.label + ' digest, ' + a.bytes + ' bytes'); }
+    function select(id) {
+      var a = get(id); if (!a) return; current = id; syncSelects(id); syncKey();
+      ui.setSel(strip, a.label, a.badge, a.label + (a.group === 'Checksum' ? ' checksum, ' + a.bytes + ' bytes. Fast, not for security.' : ' digest, ' + a.bytes + ' bytes'));
+    }
     function inputBytes() { var v = inP.ta.value; return v ? CK.textBytes(v, inFmt.value) : null; }
     function keyBytes() { return CK.textBytes(keyInput.value, keyFmt.value); }
     // returns Promise<hex> for the current algorithm (HMAC-aware)
     function digest(bytes) {
       var a = get(current);
-      if (hmacCb.checked && keyInput.value) { if (a.hmac === false) return Promise.reject(new Error(a.label + ' does not support HMAC')); var kb; try { kb = keyBytes(); } catch (e) { return Promise.reject(e); } return hmac(a, kb, bytes).then(toHex); }
+      if (a.keyed) { var k; try { k = keyBytes(); } catch (e) { return Promise.reject(e); } return a.hb(bytes, k).then(toHex); }
+      if (a.hmac !== false && hmacCb.checked && keyInput.value) { var kb; try { kb = keyBytes(); } catch (e) { return Promise.reject(e); } return hmac(a, kb, bytes).then(toHex); }
       return a.hb(bytes).then(toHex);
     }
 
     function doHash() {
       var bytes; try { bytes = inputBytes(); } catch (e) { ctx.toast(e.message, 'error'); return; }
       if (!bytes) { ctx.toast('Input is empty', 'warn'); return; }
-      return digest(bytes).then(function (hx) { outP.ta.value = fmtHex(hx, outFmt.value); clearVerify(); ctx.toast('Hashed (' + get(current).label + (hmacCb.checked && keyInput.value ? ' HMAC' : '') + ')', 'success'); })
+      return digest(bytes).then(function (hx) { outP.ta.value = fmtHex(hx, outFmt.value); clearVerify(); ctx.toast('Hashed (' + get(current).label + (get(current).hmac !== false && hmacCb.checked && keyInput.value ? ' HMAC' : '') + ')', 'success'); })
         .catch(function (e) { ctx.toast(e.message, 'error'); });
     }
     function doVerify() {

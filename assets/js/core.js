@@ -197,7 +197,7 @@ var CK = (function () {
   }
 
   /* Tool registry */
-  var _tools = [];          // manifest: {id,label,category,tag,icon}
+  var _tools = [];          // manifest: {id,label,category,tag,icon,keys}; keys = extra search words
   var _categoryOrder = [];
   var _mounts = {};         // id -> mount function
   var _containers = {};     // id -> DOM element (created lazily)
@@ -383,7 +383,7 @@ var CK = (function () {
         row.innerHTML = '<span class="hcc-ticon">' + iconSvg(t.icon, 15) + '</span><span class="hcc-tname">' + t.label + '</span>' + (t.tag ? '<span class="hcc-ttag">' + t.tag + '</span>' : '');
         row.addEventListener('click', function () { navigate(t.id); });
         list.appendChild(row);
-        rows.push({ el: row, id: t.id, text: (t.label + ' ' + (t.tag || '') + ' ' + cat + ' ' + (meta.desc || '')).toLowerCase() });
+        rows.push({ el: row, id: t.id, text: (t.label + ' ' + (t.tag || '') + ' ' + (t.keys || '') + ' ' + cat + ' ' + (meta.desc || '')).toLowerCase() });
       });
       card.appendChild(list);
       grid.appendChild(card);

@@ -1,27 +1,17 @@
 /*
    checksum.js - File Checksum
    Drop or choose a local file and compute its checksum with one selected
-   algorithm (CRC32, MD5, SHA-1, SHA-2, SHA-3). Verify compares the output
+   algorithm (any from the Hash tool: SHA-2, SHA-3, BLAKE, MD5, CRC, xxHash...). Verify compares the output
    panel (bare hash, "hash  filename" or "ALGO (file) = hash") with the file's
    checksum for that algorithm. The file is read in the browser and never uploaded.
 */
 (function () {
   'use strict';
   var toHex = CK.toHex, hexToBytes = CK.hexToBytes, unb64 = CK.unb64, b64 = CK.b64;
-  function web(algo) { return function (b) { return crypto.subtle.digest(algo, b).then(toHex); }; }
-  function lib(fn) { return function (b) { return Promise.resolve(fn(b)); }; }
-
-  // hx: bytes -> Promise<hex>
-  var ALGOS = [
-    { id: 'crc32', label: 'CRC32', bytes: 4, hx: lib(function (b) { return HashLib.crc32(b); }) },
-    { id: 'md5', label: 'MD5', bytes: 16, hx: lib(function (b) { return HashLib.md5(b); }) },
-    { id: 'sha1', label: 'SHA-1', bytes: 20, hx: web('SHA-1') },
-    { id: 'sha256', label: 'SHA-256', bytes: 32, hx: web('SHA-256') },
-    { id: 'sha384', label: 'SHA-384', bytes: 48, hx: web('SHA-384') },
-    { id: 'sha512', label: 'SHA-512', bytes: 64, hx: web('SHA-512') },
-    { id: 'sha3-256', label: 'SHA3-256', bytes: 32, hx: lib(function (b) { return HashLib.sha3(256, b); }) },
-    { id: 'sha3-512', label: 'SHA3-512', bytes: 64, hx: lib(function (b) { return HashLib.sha3(512, b); }) }
-  ];
+  // Same algorithms as the Hash tool (hash.js loads first), minus keyed SipHash; hx: bytes -> Promise<hex>
+  var ALGOS = CK.hashAlgos.filter(function (a) { return !a.keyed; }).map(function (a) {
+    return { id: a.id, label: a.label, bytes: a.bytes, hx: function (b) { return a.hb(b).then(toHex); } };
+  });
   function get(id) { for (var i = 0; i < ALGOS.length; i++) if (ALGOS[i].id === id) return ALGOS[i]; return null; }
 
   function fmtSize(n) {

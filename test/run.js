@@ -58,12 +58,12 @@ var clip = null; Object.defineProperty(global.navigator, 'clipboard', { configur
 /* ---- Load the real app ---- */
 function load(p) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, p), 'utf8'), { filename: p }); }
 global.CryptoJS = require(path.join(ROOT, 'assets/js/vendor/crypto-js.min.js'));
-['assets/js/core.js', 'assets/js/ui.js', 'assets/js/vendor/hashlib.js', 'assets/js/vendor/qrcode.min.js'].forEach(load);
+['assets/js/core.js', 'assets/js/ui.js', 'assets/js/vendor/hashlib.js', 'assets/js/vendor/qrcode.min.js', 'assets/js/vendor/noble.min.js'].forEach(load);
 var toasts = [];
 CK.toast = function (m, t) { toasts.push((t || 'success') + ': ' + m); };
 var mounts = {};
 CK.registerTool = function (id, fn) { mounts[id] = fn; };
-['hash', 'checksum', 'jwt', 'text', 'encode', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
+['hash', 'checksum', 'jwt', 'text', 'encode', 'cipher', 'keyx', 'markdown', 'qr', 'x509', 'aes', 'kdf', 'totp', 'signature'].forEach(function (t) { load('assets/js/tools/' + t + '.js'); });
 
 function all(n, out) { out = out || []; out.push(n); n.children.forEach(function (c) { all(c, out); }); return out; }
 function mount(id) {
@@ -103,6 +103,71 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   ok(CK.detectFmt('deadbeef') === 'hex' && CK.detectFmt('aGVsbG8=') === 'base64' && CK.detectFmt('hello!') === 'utf8' && CK.fmtByteLen('aGVsbG8=', 'base64') === 5, 'detectFmt and fmtByteLen');
   ok(CK.ipStr(0xC0A80001) === '192.168.0.1' && [0, 0, 0, 0, 0].every(function () { var r = CK.randInt(7); return r >= 0 && r < 7 && r === Math.floor(r); }), 'ipStr and randInt');
 
+  /* Symmetric Ciphers: modes built on AES, against published vectors */
+  var AM = CK.aesModes, hb = function (v) { return Uint8Array.from(Buffer.from(v, 'hex')); }, seq = function (a, b) { var o = []; for (var i = a; i <= b; i++) o.push(i); return Uint8Array.from(o); };
+  ok(hex(AM.ccmEnc(hb('c0c1c2c3c4c5c6c7c8c9cacbcccdcecf'), hb('00000003020100a0a1a2a3a4a5'), seq(8, 30), seq(0, 7), 8)) === '588c979a61c663d2f066d0c2c0f989806d5f6b61dac38417e8d12cfdf926e0', 'aes-ccm: RFC 3610 packet vector 1');
+  ok(hex(AM.eaxEnc(hb('91945d3f4dcbee0bf45ef52255f095a4'), hb('becaf043b0a23d843194ba972c66debd'), hb('f7fb'), hb('fa3bfd4806eb53fa'))) === '19dd5c4c9331049d0bdab0277408f67967e5', 'aes-eax: published test vector');
+  ok(hex(AM.ocb(seq(0, 15), hb('bbaa99887766554433221107'), seq(0, 23), seq(0, 23))) === '1ca2207308c87c010756104d8840ce1952f09673a448a122c92c62241051f57356d7f3c90bb0e07f', 'aes-ocb3: RFC 7253 sample');
+  ok(hex(AM.xts(hb('fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0bfbebdbcbbbab9b8b7b6b5b4b3b2b1b0'), hb('9a78563412' + '00'.repeat(11)), seq(0, 16))) === '6c1625db4671522d3d7599601de7ca09ed', 'aes-xts: IEEE 1619 vector 15 (ciphertext stealing)');
+
+  /* Symmetric Ciphers tool: NIST GCM vector, every algorithm round-trips, tampering is caught, keys stay out of links */
+  var Y = mount('cipher'), yin = Y.tas[0], yout = Y.tas[1];
+  var ykey = Y.field('Key'), ynonce = Y.field('Nonce / IV');
+  set(Y.field('Algorithm'), 'aes-gcm'); set(ykey.children[0], '00'.repeat(16)); set(ynonce.children[0], '00'.repeat(12));
+  set(Y.field('Plaintext format'), 'hex'); set(Y.field('Ciphertext format'), 'hex'); set(yin, '00'.repeat(16)); Y.prim('Encrypt').fire('click');
+  ok(yout.value === '0388dace60b6a392f328c2b971b2fe78ab6e47d42cec13bdf53a67b21257bddf', 'cipher: AES-GCM NIST test case 2');
+  set(Y.field('Plaintext format'), 'utf8'); set(Y.field('Ciphertext format'), 'base64');
+  var PT = 'Twenty-four bytes here!!', bad = [];
+  Y.field('Algorithm').options.map(function (o) { return o.value; }).forEach(function (id) {
+    set(Y.field('Algorithm'), id); ykey.children[2].fire('click'); set(ynonce.children[0], '');
+    set(yin, PT); yout.value = ''; Y.prim('Encrypt').fire('click');
+    var ct = yout.value; set(yin, ct); yout.value = ''; Y.prim('Decrypt').fire('click');
+    if (!ct || ct === PT || yout.value !== PT) bad.push(id + ' (' + last() + ')');
+  });
+  ok(bad.length === 0 && Y.field('Algorithm').options.length === 20, 'cipher: all 20 algorithms encrypt and decrypt back' + (bad.length ? ': ' + bad.join(', ') : ''));
+  set(Y.field('Algorithm'), 'aes-ocb'); ykey.children[2].fire('click'); set(yin, PT); Y.prim('Encrypt').fire('click');
+  var tam = CK.unb64(yout.value); tam[0] ^= 1; set(yin, CK.b64(tam)); Y.prim('Decrypt').fire('click');
+  ok(/Authentication failed/.test(last()), 'cipher: a changed ciphertext is rejected');
+  clip = null; Y.byTitle('Share').fire('click'); await sleep(10);
+  var ylink = JSON.parse(CK.b64uDec(/s=([\w-]+)/.exec(clip || '')[1]));
+  ok(ylink.a === 'aes-ocb' && !('k' in ylink) && ylink.n, 'cipher: share link carries the nonce but not the key');
+
+  /* Key Exchange: RFC 7748 vectors, ECDH and MODP DH against Node, KEM round trips */
+  var KX = function () { var t = mount('keyx'); return { t: t, priv: t.field('Your private key').children[0], pub: t.field('Your public key'), gen: t.byTitle('Generate keypair') }; };
+  var kxRun = async function (k, label) { k.t.tas[1].value = ''; toasts.length = 0; k.t.prim(label).fire('click'); await until(function () { return k.t.tas[1].value || /error/.test(last()); }, 20000); return k.t.tas[1].value; };
+  var A = KX();
+  set(A.priv, '77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
+  ok(A.pub.value === '8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a', 'x25519: public key derived from the private key (RFC 7748)');
+  set(A.t.tas[0], 'de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f');
+  ok(await kxRun(A, 'Derive') === '4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742', 'x25519: RFC 7748 shared secret');
+  set(A.t.field('Algorithm'), 'x448'); set(A.priv, '9a8f4925d1519f5775cf46b04b5800d4ee9ee8bae8bc5565d498c28dd9c9baf574a9419744897391006382a6f127ab1d9ac2d8c0a598726b');
+  set(A.t.tas[0], '3eb7a829b0cd20f5bcfc0b599b6feccf6da4627107bdb0d4f345b43027d8b972fc3e34fb4232a13ca706dcb57aec3dae07bdc1c67bf33609');
+  ok(await kxRun(A, 'Derive') === '07fff4181ac6cc95ec1c16a94a0f74d12da232ce40a77552281d282bb60c0b56fd2464c335543936521c24403085d59a449a5037514a879d', 'x448: RFC 7748 shared secret');
+  for (var cv of [['p256', 'prime256v1'], ['secp256k1', 'secp256k1']]) {
+    set(A.t.field('Algorithm'), cv[0]); A.priv.value = ''; A.pub.value = ''; A.gen.fire('click'); await until(function () { return A.pub.value; });
+    var nodeEc = nc.createECDH(cv[1]); nodeEc.generateKeys(); set(A.t.tas[0], nodeEc.getPublicKey('hex'));
+    ok(await kxRun(A, 'Derive') === nodeEc.computeSecret(Buffer.from(A.pub.value, 'hex')).toString('hex'), 'ecdh ' + cv[0] + ': same secret as Node');
+  }
+  set(A.t.field('Algorithm'), 'modp2048'); A.priv.value = ''; A.pub.value = ''; A.gen.fire('click'); await until(function () { return A.pub.value; }, 20000);
+  var nodeDh = nc.getDiffieHellman('modp14'); nodeDh.generateKeys(); set(A.t.tas[0], nodeDh.getPublicKey('hex'));
+  ok(await kxRun(A, 'Derive') === nodeDh.computeSecret(Buffer.from(A.pub.value, 'hex')).toString('hex').padStart(512, '0'), 'dh modp2048 (group 14): same prime and secret as Node');
+  var B = KX();
+  for (var fg of ['ffdhe2048', 'mlkem768', 'xwing']) {
+    set(A.t.field('Algorithm'), fg); set(B.t.field('Algorithm'), fg);
+    A.priv.value = ''; B.priv.value = ''; A.pub.value = ''; B.pub.value = ''; A.gen.fire('click'); B.gen.fire('click');
+    await until(function () { return A.pub.value && B.pub.value; }, 20000);
+    if (fg === 'ffdhe2048') {
+      set(A.t.tas[0], B.pub.value); set(B.t.tas[0], A.pub.value);
+      var sa = await kxRun(A, 'Derive'), sb = await kxRun(B, 'Derive');
+      ok(sa.length === 512 && sa === sb, 'dh ffdhe2048: both sides derive the same 256-byte secret');
+    } else {
+      set(A.t.tas[0], B.pub.value); var enc = await kxRun(A, 'Encapsulate');
+      var parts = /Ciphertext[^\n]*\n(\S+)\n\nShared secret:\n(\S+)/.exec(enc) || [];
+      set(B.t.tas[0], parts[1] || ''); var dec = await kxRun(B, 'Decapsulate');
+      ok(parts[2] && parts[2].length === 64 && dec === parts[2], fg + ': decapsulating the ciphertext gives the sender\'s secret');
+    }
+  }
+
   /* Encoder: Base64URL and JWT go through the shared helpers */
   var E = mount('encode'), U = 'hüllö ✓ ??>';
   set(E.field('Bases'), 'base64url'); set(E.tas[0], U); E.prim('Encode').fire('click');
@@ -121,6 +186,30 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   set(H.tas[0], '68 65 6c 6c 6f'); H.prim('Hash').fire('click');
   await until(function () { return H.tas[1].value; });
   ok(H.tas[1].value === nc.createHash('sha256').update('hello').digest('hex'), 'hash: valid hex hashes the right bytes');
+  /* New hashes: published test vectors, through the Hash tool's own pickers */
+  var hashOf = async function (group, id, input, fmt) {
+    set(H.field(group), id); set(H.field('Input format'), fmt || 'utf8'); set(H.tas[0], input); H.tas[1].value = '';
+    H.prim('Hash').fire('click'); await until(function () { return H.tas[1].value; }); return H.tas[1].value;
+  };
+  ok(await hashOf('SHA-2', 'sha224', 'abc') === '23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7', 'hash: SHA-224');
+  ok(await hashOf('SHA-2', 'sha512-256', 'abc') === '53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23', 'hash: SHA-512/256');
+  ok(await hashOf('BLAKE', 'blake2b', 'abc') === 'ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923', 'hash: BLAKE2b-512 (RFC 7693)');
+  ok(await hashOf('BLAKE', 'blake3', 'abc') === '6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85', 'hash: BLAKE3');
+  ok(await hashOf('Checksum', 'murmur3', 'hello') === '248bfa47', 'hash: MurmurHash3');
+  ok(hex(Noble.shake128(new Uint8Array(0), { dkLen: 32 })) === '7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26' &&
+    hex(Noble.blake256(new Uint8Array(0))) === '716f6e863f744b9ac22c97ec7b76ea5f5908bc5b2f67c61510bfc4751384ea7a', 'hash: SHAKE128 and BLAKE-256 of empty input');
+  set(H.field('Checksum'), 'siphash');
+  var keyIn = H.field('Key').children[0], keyFmtSel = H.field('Key').children[1];
+  ok(keyIn.placeholder === '16-byte key', 'hash: SipHash shows its key field');
+  set(keyFmtSel, 'hex');
+  set(keyIn, '000102030405060708090a0b0c0d0e0f');
+  ok(await hashOf('Checksum', 'siphash', '000102030405060708090a0b0c0d0e', 'hex') === 'a129ca6149be45e5', 'hash: SipHash-2-4 with its 16-byte key (reference vector)');
+  set(keyIn, ''); set(keyFmtSel, 'utf8'); set(H.field('Input format'), 'utf8');
+  [['adler32', 'Wikipedia', '11e60398'], ['crc64', '123456789', '995dc9bbdf1939fa'], ['fnv1_32', 'a', '050c5d7e'], ['fnv1a_32', 'a', 'e40c292c'],
+    ['fnv1_64', 'a', 'af63bd4c8601b7be'], ['fnv1a_64', 'a', 'af63dc4c8601ec8c'], ['oaat', 'a', 'ca2e9442'], ['xxh32', 'abc', '32d153ff'],
+    ['xxh64', 'abc', '44bc2cf5ad770999'], ['xxh64', 'The quick brown fox jumps over the lazy dog', '0b242d361fda71bc']].forEach(function (v) {
+    ok(HashLib[v[0]](new TextEncoder().encode(v[1])) === v[2], 'checksum vector: ' + v[0] + '("' + v[1].slice(0, 12) + '")');
+  });
 
   /* File Checksum: one algorithm at a time; Verify checks the output panel against it */
   var C = mount('checksum'), out = C.tas[0], picker = all(C.root).filter(function (n) { return n.attrs.type === 'file'; })[0];
@@ -190,12 +279,12 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   var S1 = mount('hash'); CK.rememberSettings('hash', S1.root);
   set(S1.field('SHA-2'), 'sha512'); set(S1.field('Output format'), 'base64');
   var hm = cbOf(S1.root); hm.checked = true; hm.fire('change');
-  set(S1.field('HMAC key').children[0], 'topsecret');
+  set(S1.field('Key').children[0], 'topsecret');
   S1.root.dispatchEvent(new Event('change', { bubbles: true })); await sleep(350);
   var saved = LS['ck.cfg.hash'] || '';
   ok(saved.indexOf('sha512') >= 0 && saved.indexOf('topsecret') < 0, 'settings: saved, but never the HMAC key text');
   var S2 = mount('hash'); CK.rememberSettings('hash', S2.root);
-  ok(S2.field('SHA-2').value === 'sha512' && S2.field('Output format').value === 'base64' && cbOf(S2.root).checked && S2.field('HMAC key').children[0].value === '', 'settings: restored on the next visit, key field stays empty');
+  ok(S2.field('SHA-2').value === 'sha512' && S2.field('Output format').value === 'base64' && cbOf(S2.root).checked && S2.field('Key').children[0].value === '', 'settings: restored on the next visit, key field stays empty');
   location.hash = '#tool=hash&s=abc';
   var S3 = mount('hash'); CK.rememberSettings('hash', S3.root);
   ok(S3.field('SHA-2').value === 'sha256', 'settings: a share link takes precedence over saved settings');
@@ -299,6 +388,11 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
   set(K.tas[0], 'password'); K.prim('Derive').fire('click');
   await until(function () { return K.tas[1].value; }, 20000);
   ok(K.tas[1].value === 'fdbabe1c9d3472007856e7190d01e9fe7c6ad7cbc8237830e77376634b3731622eaf30d92e22a3886ff109279d9830dac727afb94a83ee6d8360cbdfa2cc0640', 'scrypt: RFC 7914 vector');
+  /* HKDF: RFC 5869 test case 3 (SHA-256, no salt, no info) */
+  set(K.field('Algorithm'), 'hkdf'); set(K.field('Hash'), 'SHA-256'); set(K.field('Salt').children[0], ''); set(K.field('Info (UTF-8)'), ''); set(len, '42');
+  set(K.tas[0], String.fromCharCode(11).repeat(22)); K.tas[1].value = ''; K.prim('Derive').fire('click');
+  await until(function () { return K.tas[1].value; });
+  ok(K.tas[1].value === '8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8', 'hkdf: RFC 5869 test case 3');
 
   /* HOTP RFC 4226 and TOTP RFC 6238 (SHA-1) */
   var realNow = Date.now; Date.now = function () { return 59000; };
@@ -331,6 +425,44 @@ var hex = function (b) { return Buffer.from(b).toString('hex'); };
     if (!nc.verify('sha256', Buffer.from('msg ' + i), { key: kp.publicKey, dsaEncoding: 'der' }, Buffer.from(S.tas[1].value, 'base64'))) derOk = false;
   }
   ok(derOk, 'ecdsa: 20 DER signatures verify in Node');
+
+  /* Ed448: RFC 8032 section 7.4, 1-octet message */
+  set(S.field('Algorithm'), 'Ed448'); set(S.field('Message format'), 'hex'); set(S.field('Signature format'), 'hex');
+  set(S.field('Private key').children[0], 'c4eab05d357007c632f3dbb48489924d552b08fe0c353a0d4a1f00acda2c463afbea67c5e8d2877c5e3bc397a659949ef8021e954e0a12274e');
+  set(S.field('Public key').children[0], '43ba28f430cdff456ae531545f7ecd0ac834a55d9358c0372bfa0c6c6798c0866aea01eb00742802b8438ea4cb82169c235160627b4c3a9480');
+  S.tas[1].value = ''; set(S.tas[0], '03'); S.prim('Sign').fire('click');
+  await until(function () { return S.tas[1].value; });
+  ok(S.tas[1].value === '26b8f91727bd62897af15e41eb43c377efb9c610d48f2335cb0bd0087810f4352541b143c4b981b7e18f62de8ccdf633fc1bf037ab7cd779805e0dbcc0aae1cbcee1afb2e027df36bc04dcecbf154336c19f0af7e0a6472905e799f1953d2a0ff3348ab21aa4adafd1d234441cf807c03a00', 'ed448: RFC 8032 1-octet vector');
+  set(S.field('Message format'), 'utf8');
+
+  /* RSA-PSS and PKCS#1 v1.5: keys made in the tool, signatures checked by Node */
+  var rsaOk = [];
+  for (var ra of [['RSA-PSS', nc.constants.RSA_PKCS1_PSS_PADDING], ['RSA-PKCS1', nc.constants.RSA_PKCS1_PADDING]]) {
+    set(S.field('Algorithm'), ra[0]); set(S.field('Hash'), 'SHA-384'); set(S.field('Signature format'), 'base64');
+    S.field('Public key').children[0].value = ''; S.byTitle('Generate keypair').fire('click');
+    await until(function () { return /BEGIN PUBLIC KEY/.test(S.field('Public key').children[0].value); }, 20000);
+    S.tas[1].value = ''; set(S.tas[0], 'rsa message'); S.prim('Sign').fire('click');
+    await until(function () { return S.tas[1].value; }, 10000);
+    rsaOk.push(nc.verify('sha384', Buffer.from('rsa message'), { key: S.field('Public key').children[0].value, padding: ra[1], saltLength: 48 }, Buffer.from(S.tas[1].value, 'base64')));
+  }
+  ok(rsaOk.join() === 'true,true', 'rsa-pss / pkcs1: signatures from the tool verify in Node (' + rsaOk.join() + ')');
+
+  /* secp256k1 and post-quantum: generate, sign, verify, and reject a changed message */
+  var pqBad = [];
+  for (var pa of ['secp256k1', 'ML-DSA-44', 'ML-DSA-87', 'SLH-SHA2-128f', 'SLH-SHAKE-128f', 'Falcon-512']) {
+    set(S.field('Algorithm'), pa); S.field('Public key').children[0].value = ''; S.byTitle('Generate keypair').fire('click');
+    await until(function () { return S.field('Public key').children[0].value; }, 20000);
+    S.tas[1].value = ''; set(S.tas[0], 'post-quantum message'); S.prim('Sign').fire('click');
+    await until(function () { return S.tas[1].value; }, 20000);
+    toasts.length = 0; S.byTitle('Verify').fire('click'); await until(function () { return toasts.length; }, 20000);
+    var good = /^success: Valid/.test(last());
+    set(S.tas[0], 'post-quantum messagE'); toasts.length = 0; S.byTitle('Verify').fire('click'); await until(function () { return toasts.length; }, 20000);
+    if (!good || !/Invalid signature/.test(last())) pqBad.push(pa);
+  }
+  ok(pqBad.length === 0, 'signatures: secp256k1, ML-DSA, SLH-DSA and Falcon verify, and a changed message fails' + (pqBad.length ? ': ' + pqBad.join(', ') : ''));
+  set(S.field('Public key').children[0], S.field('Public key').children[0].value); S.field('Private key').children[0].value = '';
+  S.byTitle('Detect').fire('click');
+  ok(/Detected Falcon-512 public key/.test(last()), 'signatures: Detect recognises a raw Falcon-512 key by its size');
 
   /* Offline cache: everything the app loads is precached, and a changed precached file needs a new CACHE version */
   var swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), idx = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

@@ -119,12 +119,14 @@
 
     var lastCounter = null;
     // Recompute and paint the code (async). For TOTP called on counter rollover; for HOTP on demand.
+    // Codes are computed asynchronously: only the newest request may write, so a slower older one cannot overwrite it
+    var regenId = 0;
     function regen() {
-      var bytes;
+      var bytes, my = ++regenId;
       try { bytes = secretBytes(inP.ta.value, fmtSel.value); } catch (e) { outP.ta.value = ''; return; }
       if (!bytes || !bytes.length) { outP.ta.value = ''; return; }
       var counter = mode === 'totp' ? Math.floor(Date.now() / 1000 / period()) : (+counterInput.value || 0);
-      return hotp(bytes, counter, algo(), digits()).then(function (code) { outP.ta.value = code; }).catch(function () { outP.ta.value = ''; });
+      return hotp(bytes, counter, algo(), digits()).then(function (code) { if (my === regenId) outP.ta.value = code; }).catch(function () { if (my === regenId) outP.ta.value = ''; });
     }
     function doGenerate() {
       var bytes;
